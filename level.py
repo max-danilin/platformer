@@ -70,12 +70,23 @@ class Level:
                 self.player.sprite.direction.y = 0
                 self.player.sprite.jump()
 
+    def check_state(self):
+        player = self.player.sprite
+        if player.direction.x == 0 and player.direction.y <= 1 and player.direction.y >= 0:
+            player.state = "idle"
+        elif player.direction.y <= 1 and player.direction.x != 0 and player.direction.y >= 0:
+            player.state = "run"
+        elif player.direction.y > 1 or player.direction.y < 0:
+            player.state = "jump"
+        print(player.state, player.direction.x, player.direction.y, player.rect.y)
+
     def run(self):
         self.tiles.update(self.world_shift)
         self.player.update()
         self.apply_gravity()
         self.collision_x_handler()
         self.collision_y_handler()
+        self.check_state()
         self.tiles.draw(self.surface)
         self.player.draw(self.surface)
         self.scroll_x()
