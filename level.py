@@ -53,21 +53,16 @@ class Level:
     def collision_x_handler(self):
         collision_tolerance = 10
         for tile in pygame.sprite.spritecollide(self.player.sprite, self.tiles.sprites(), 0):
-            if self.player.sprite.direction.x < 0 and tile.rect.right - self.player.sprite.rect.left < collision_tolerance:
-            # if self.player.sprite.direction.x < 0 and tile.rect.right - self.player.sprite.rect.left < collision_tolerance and (
-            #         tile.rect.bottom - self.player.sprite.rect.top > collision_tolerance and self.player.sprite.rect.bottom - tile.rect.top > collision_tolerance
-            # ):
+            if tile.rect.right - self.player.sprite.rect.left < collision_tolerance:
                 self.player.sprite.rect.left = tile.rect.right
                 #print(f"top tile {tile.rect.top} bot player {self.player.sprite.rect.bottom} bot tile {tile.rect.bottom} top player {self.player.sprite.rect.top}")
-            elif self.player.sprite.direction.x > 0 and self.player.sprite.rect.right - tile.rect.left < collision_tolerance and (
-                    tile.rect.bottom - self.player.sprite.rect.top > collision_tolerance and self.player.sprite.rect.bottom - tile.rect.top > collision_tolerance
-            ):
+            elif self.player.sprite.rect.right - tile.rect.left < collision_tolerance:
                 self.player.sprite.rect.right = tile.rect.left
 
     def collision_y_handler(self):
         collision_tolerance = 30
         for tile in pygame.sprite.spritecollide(self.player.sprite, self.tiles.sprites(), 0):
-            if self.player.sprite.rect.left < tile.rect.right and self.player.sprite.rect.right > tile.rect.left and tile.rect.bottom - self.player.sprite.rect.top < collision_tolerance:
+            if tile.rect.bottom - self.player.sprite.rect.top < collision_tolerance:
                 self.player.sprite.rect.top = tile.rect.bottom
                 self.player.sprite.direction.y = 0
             elif self.player.sprite.direction.y > 0 and self.player.sprite.rect.bottom - tile.rect.top < collision_tolerance:
