@@ -78,7 +78,7 @@ class Level:
             player.state = "run"
         elif player.direction.y > 1 or player.direction.y < 0:
             player.state = "jump"
-        print(player.state, player.direction.x, player.direction.y, player.rect.y)
+        #print(player.state, player.direction.x, player.direction.y, player.rect.y)
 
     def run(self):
         self.tiles.update(self.world_shift)

@@ -17,7 +17,7 @@ class Player(pygame.sprite.Sprite):
         self.frame_index = 0
         self.animation_speed = 0.15
         self.moving_right = True
-        self.image = pygame.image.load(self.states[self.state][0]).convert_alpha()
+        self.image = self.states[self.state][0]
         self.rect = self.image.get_rect(topleft=pos)
         self.direction = pygame.math.Vector2(0, 0)
         self.speed = pygame.math.Vector2(5, 1)
@@ -27,7 +27,9 @@ class Player(pygame.sprite.Sprite):
         for file in os.listdir(img_dir):
             for state in self.states:
                 if file.lower().find(state) != -1:
-                    self.states[state].append(os.path.join(img_dir, file))
+                    path = os.path.join(img_dir, file)
+                    img_load = pygame.image.load(path).convert_alpha()
+                    self.states[state].append(img_load)
 
     def update(self):
         keys = pygame.key.get_pressed()
@@ -44,7 +46,7 @@ class Player(pygame.sprite.Sprite):
         self.frame_index += self.animation_speed
         if self.frame_index >= len(self.states[self.state]):
             self.frame_index = 0
-        self.image = pygame.image.load(self.states[self.state][int(self.frame_index)]).convert_alpha()
+        self.image = self.states[self.state][int(self.frame_index)]
         if not self.moving_right:
             self.image = pygame.transform.flip(self.image, True, False)
 
