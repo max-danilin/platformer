@@ -14,6 +14,10 @@ class Level:
         self.level_data = level_data
         self.surface = surface
         self.world_shift = 0
+        self.landing = False
+        self.taking_off = False
+        self.running_right = False
+        self.running_left = False
         self.setup()
 
     def setup(self):
@@ -60,6 +64,7 @@ class Level:
                 self.player.sprite.rect.right = tile.rect.left
 
     def collision_y_handler(self):
+        self.previous_direction = self.player.sprite.direction.y
         collision_tolerance = 30
         for tile in pygame.sprite.spritecollide(self.player.sprite, self.tiles.sprites(), 0):
             if tile.rect.bottom - self.player.sprite.rect.top < collision_tolerance:
@@ -80,6 +85,25 @@ class Level:
             player.state = "jump"
         #print(player.state, player.direction.x, player.direction.y, player.rect.y)
 
+    def particle_state(self):
+        if 1.5 >= self.previous_direction >= 0 and self.player.sprite.direction.y < 0:
+            self.taking_off = True
+        elif self.previous_direction > 1.5 and 1 >= self.player.sprite.direction.y >= 0:
+            self.landing = True
+        else:
+            self.taking_off, self.landing = False, False
+        if self.taking_off or self.landing:
+            print(f"take off={self.taking_off}, landing={self.landing}, {self.previous_direction}, {self.player.sprite.direction.y}")
+        player = self.player.sprite
+        if player.state == "run" and player.moving_right == True:
+            self.running_right = True
+        elif player.state == "run" and player.moving_right == False:
+            self.running_left = True
+        else:
+            self.running_left, self.running_right = False, False
+        if self.running_right or self.running_left:
+            print(f"run left = {self.running_left}, run right = {self.running_right}")
+
     def run(self):
         self.tiles.update(self.world_shift)
         self.player.update()
@@ -87,6 +111,7 @@ class Level:
         self.collision_x_handler()
         self.collision_y_handler()
         self.check_state()
+        self.particle_state()
         self.tiles.draw(self.surface)
         self.player.draw(self.surface)
         self.scroll_x()
