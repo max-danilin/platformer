@@ -3,7 +3,7 @@ import os
 
 
 class Particle(pygame.sprite.Sprite):
-    def __init__(self, pos):
+    def __init__(self, pos, flipped=False):
         super().__init__()
         self.states = {"land": [], "jump": [], "run": []}
         self.state = "land"
@@ -12,6 +12,7 @@ class Particle(pygame.sprite.Sprite):
         self.frame_index = 0
         self.animation_speed = 0.15
         self.pos = pos
+        self.flipped = flipped
         self.image = self.states[self.state][0]
         self.rect = self.image.get_rect(topleft=pos)
 
@@ -30,11 +31,15 @@ class Particle(pygame.sprite.Sprite):
             if self.state == 'run':
                 self.frame_index = 0
             else:
+                self.frame_index = 0  # TODO implement better way to deal with list overflow
                 self.kill()
         if self.state != self.prev_state:
             self.frame_index = 0
-        print(self.frame_index, self.states[self.state][int(self.frame_index)])
+        # print(self.states)
+        # print(self.frame_index, self.state)
         self.image = self.states[self.state][int(self.frame_index)]
+        if self.flipped:
+            self.image = pygame.transform.flip(self.image, True, False)
         self.prev_state = self.state
         #self.rect = self.image.get_rect(topleft=self.pos)
 

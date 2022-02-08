@@ -19,6 +19,7 @@ class Level:
         self.taking_off = False
         self.running_right = False
         self.running_left = False
+        self.on_ground = False
         self.particles = pygame.sprite.Group()
         self.setup()
 
@@ -68,6 +69,7 @@ class Level:
     def collision_y_handler(self):
         self.previous_direction = self.player.sprite.direction.y
         collision_tolerance = 30
+        self.on_ground = False
         for tile in pygame.sprite.spritecollide(self.player.sprite, self.tiles.sprites(), 0):
             if tile.rect.bottom - self.player.sprite.rect.top < collision_tolerance:
                 self.player.sprite.rect.top = tile.rect.bottom
@@ -75,36 +77,55 @@ class Level:
             elif self.player.sprite.direction.y > 0 and self.player.sprite.rect.bottom - tile.rect.top < collision_tolerance:
                 self.player.sprite.rect.bottom = tile.rect.top
                 self.player.sprite.direction.y = 0
+                self.on_ground = True
                 self.player.sprite.jump()
 
     def check_state(self):
         player = self.player.sprite
-        if player.direction.x == 0 and player.direction.y <= 1 and player.direction.y >= 0:
+        if player.direction.x == 0 and self.on_ground:
             player.state = "idle"
         elif player.direction.y <= 1 and player.direction.x != 0 and player.direction.y >= 0:
             player.state = "run"
         elif player.direction.y > 1 or player.direction.y < 0:
             player.state = "jump"
-        #print(player.state, player.direction.x, player.direction.y, player.rect.y)
+        print(player.state, player.direction.x, player.direction.y, player.rect.y, self.on_ground)
 
     def particle_state(self):
-        if 1.5 >= self.previous_direction >= 0 and self.player.sprite.direction.y < 0:
+        if self.on_ground and self.player.sprite.direction.y < 0:
             self.taking_off = True
-            # particle_offset = pygame.math.Vector2(20, 35)
-            # jump_particle = Particle(self.player.sprite.rect.bottomleft - particle_offset)
-            # jump_particle.state = 'jump'
-            # self.particles.add(jump_particle)
-        elif self.previous_direction > 1.5 and 1 >= self.player.sprite.direction.y >= 0:
+            particle_offset = pygame.math.Vector2(-10, 30)
+            jump_particle = Particle(self.player.sprite.rect.bottomleft - particle_offset)
+            jump_particle.state = 'jump'
+            self.particles.add(jump_particle)
+        elif self.previous_direction > 1.5 and self.on_ground:
             self.landing = True
-            # particle_offset = pygame.math.Vector2(20, 45)
-            # landing_particle = Particle(self.player.sprite.rect.bottomleft - particle_offset)
-            # landing_particle.state = 'land'
-            # self.particles.add(landing_particle)
+            particle_offset = pygame.math.Vector2(20, 40)
+            landing_particle = Particle(self.player.sprite.rect.bottomleft - particle_offset)
+            landing_particle.state = 'land'
+            self.particles.add(landing_particle)
         else:
             self.taking_off, self.landing = False, False
         if self.taking_off or self.landing:
             print(f"take off={self.taking_off}, landing={self.landing}, {self.previous_direction}, {self.player.sprite.direction.y}")
         player = self.player.sprite
+        if player.prev_state != 'run' and player.state == "run":
+            if player.moving_right:
+                particle_offset = pygame.math.Vector2(10, 0)
+                run_particle = Particle(self.player.sprite.rect.bottomleft - particle_offset)
+            else:
+                particle_offset = pygame.math.Vector2(10, 0)
+                run_particle = Particle(self.player.sprite.rect.bottomright - particle_offset, flipped=True)
+            run_particle.state = 'run'
+            self.particles.add(run_particle)
+        for sprite in self.particles.sprites():
+            if sprite.state == "run":
+                if player.state != 'run':
+                    self.particles.remove(sprite)
+                else:
+                    if player.moving_right:
+                        sprite.rect.x, sprite.rect.y = player.rect.x - 10, player.rect.bottom - 10
+                    else:
+                        sprite.rect.x, sprite.rect.y = player.rect.right - 5, player.rect.bottom - 10
         if player.state == "run":
             # particle_offset = pygame.math.Vector2(10, 15)
             # run_particle = Particle(self.player.sprite.rect.bottomleft - particle_offset)
@@ -119,9 +140,9 @@ class Level:
         else:
             # self.particles.remove(run_particle)
             self.running_left, self.running_right = False, False
-        # self.particles.update()
-        # print(f"Particle: {self.particles.sprite.rect.x}, {self.particles.sprite.rect.y}, player: {player.rect.x}, {player.rect.y}")
-        # self.particles.draw(self.surface)
+        self.particles.update()
+        #print(f"Particle: {self.particles.sprite.rect.x}, {self.particles.sprite.rect.y}, player: {player.rect.x}, {player.rect.y}")
+        self.particles.draw(self.surface)
         if self.running_right or self.running_left:
             print(f"run left = {self.running_left}, run right = {self.running_right}")
 
@@ -136,6 +157,7 @@ class Level:
         self.tiles.draw(self.surface)
         self.player.draw(self.surface)
         self.scroll_x()
+
 
 
 
