@@ -2,6 +2,7 @@ import pygame
 from tiles import Tile
 from settings import tile_size
 from player import Player
+from particle import Particle
 
 
 def read_data(level_map):
@@ -18,6 +19,7 @@ class Level:
         self.taking_off = False
         self.running_right = False
         self.running_left = False
+        self.particles = pygame.sprite.Group()
         self.setup()
 
     def setup(self):
@@ -88,19 +90,38 @@ class Level:
     def particle_state(self):
         if 1.5 >= self.previous_direction >= 0 and self.player.sprite.direction.y < 0:
             self.taking_off = True
+            # particle_offset = pygame.math.Vector2(20, 35)
+            # jump_particle = Particle(self.player.sprite.rect.bottomleft - particle_offset)
+            # jump_particle.state = 'jump'
+            # self.particles.add(jump_particle)
         elif self.previous_direction > 1.5 and 1 >= self.player.sprite.direction.y >= 0:
             self.landing = True
+            # particle_offset = pygame.math.Vector2(20, 45)
+            # landing_particle = Particle(self.player.sprite.rect.bottomleft - particle_offset)
+            # landing_particle.state = 'land'
+            # self.particles.add(landing_particle)
         else:
             self.taking_off, self.landing = False, False
         if self.taking_off or self.landing:
             print(f"take off={self.taking_off}, landing={self.landing}, {self.previous_direction}, {self.player.sprite.direction.y}")
         player = self.player.sprite
-        if player.state == "run" and player.moving_right == True:
-            self.running_right = True
-        elif player.state == "run" and player.moving_right == False:
-            self.running_left = True
+        if player.state == "run":
+            # particle_offset = pygame.math.Vector2(10, 15)
+            # run_particle = Particle(self.player.sprite.rect.bottomleft - particle_offset)
+            # run_particle.state = 'run'
+            # self.particles.add(run_particle)
+            if player.moving_right:
+                self.running_right = True
+                self.running_left = False
+            else:
+                self.running_left = True
+                self.running_right = False
         else:
+            # self.particles.remove(run_particle)
             self.running_left, self.running_right = False, False
+        # self.particles.update()
+        # print(f"Particle: {self.particles.sprite.rect.x}, {self.particles.sprite.rect.y}, player: {player.rect.x}, {player.rect.y}")
+        # self.particles.draw(self.surface)
         if self.running_right or self.running_left:
             print(f"run left = {self.running_left}, run right = {self.running_right}")
 

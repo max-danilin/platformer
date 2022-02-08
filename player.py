@@ -13,6 +13,7 @@ class Player(pygame.sprite.Sprite):
         #self.image = pygame.Surface((32, 64))
         self.states = {"idle": [], "jump": [], "run": []}
         self.state = "idle"
+        self.prev_state = ""
         self.get_img()
         self.frame_index = 0
         self.animation_speed = 0.15
@@ -44,11 +45,14 @@ class Player(pygame.sprite.Sprite):
         self.rect.x += self.direction.x * self.speed.x
         self.rect.y += self.direction.y
         self.frame_index += self.animation_speed
+        if self.state != self.prev_state:
+            self.frame_index = 0
         if self.frame_index >= len(self.states[self.state]):
             self.frame_index = 0
         self.image = self.states[self.state][int(self.frame_index)]
         if not self.moving_right:
             self.image = pygame.transform.flip(self.image, True, False)
+        self.prev_state = self.state
 
     def jump(self):
         keys = pygame.key.get_pressed()
