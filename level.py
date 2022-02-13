@@ -1,9 +1,17 @@
 import pygame
 from tiles import Tile
-from settings import tile_size
+from settings import tile_size, RIGHT_SCREEN_EDGE, LEFT_SCREEN_EDGE
 from player import Player
 from particle import Particle
+import logging
 
+log = logging.getLogger("platform")
+
+stream_handler = logging.StreamHandler()
+stream_handler.setFormatter(logging.Formatter('%(module)s - %(levelname)s - %(message)s'))
+log.addHandler(stream_handler)
+log.setLevel(logging.DEBUG)
+stream_handler.setLevel(logging.DEBUG)
 
 def read_data(level_map):
     with open(level_map, 'r') as map1:
@@ -20,6 +28,7 @@ class Level:
         self.running_right = False
         self.running_left = False
         self.on_ground = False
+        self.gravity = 0.5
         self.particles = pygame.sprite.Group()
         self.setup()
 
@@ -39,56 +48,85 @@ class Level:
                     self.player.add(player)
 
     def scroll_x(self):
+        """
+        Scroll the whole level if player reaches certain positions
+        :return:
+        """
         player = self.player.sprite
         player_x = player.rect.centerx
         direction_x = player.direction.x
+        player.shift_speed = player.speed.x
 
-        if player_x < 200 and direction_x < 0:
-            self.world_shift = 5
+        if player_x < LEFT_SCREEN_EDGE and direction_x < 0:
+            self.world_shift = player.shift_speed
             player.speed.x = 0
-        elif player_x > 1000 and direction_x > 0:
-            self.world_shift = -5
+        elif player_x > RIGHT_SCREEN_EDGE and direction_x > 0:
+            self.world_shift = -player.shift_speed
             player.speed.x = 0
         else:
             self.world_shift = 0
-            player.speed.x = 5
 
     def apply_gravity(self):
+        """
+        Applying gravity onto player object
+        :return: None
+        """
         player = self.player.sprite
-        player.direction.y += 0.5
+        player.direction.y += self.gravity
+
+    def permit_jump(self):
+        """
+
+        :return:
+        """
+        player = self.player.sprite
+        if self.on_ground:
+            player.jump()
 
     def collision_x_handler(self):
         collision_tolerance = 10
         for tile in pygame.sprite.spritecollide(self.player.sprite, self.tiles.sprites(), 0):
             if tile.rect.right - self.player.sprite.rect.left < collision_tolerance:
                 self.player.sprite.rect.left = tile.rect.right
-                #print(f"top tile {tile.rect.top} bot player {self.player.sprite.rect.bottom} bot tile {tile.rect.bottom} top player {self.player.sprite.rect.top}")
+                log.debug(f"top tile {tile.rect.top} bot player {self.player.sprite.rect.bottom} bot tile {tile.rect.bottom} top player {self.player.sprite.rect.top}")
             elif self.player.sprite.rect.right - tile.rect.left < collision_tolerance:
                 self.player.sprite.rect.right = tile.rect.left
+            log.debug(f"COLLIDE {self.player.sprite.rect.left}, {tile.rect.right}")
 
     def collision_y_handler(self):
         self.previous_direction = self.player.sprite.direction.y
         collision_tolerance = 30
         self.on_ground = False
-        for tile in pygame.sprite.spritecollide(self.player.sprite, self.tiles.sprites(), 0):
-            if tile.rect.bottom - self.player.sprite.rect.top < collision_tolerance:
-                self.player.sprite.rect.top = tile.rect.bottom
-                self.player.sprite.direction.y = 0
-            elif self.player.sprite.direction.y > 0 and self.player.sprite.rect.bottom - tile.rect.top < collision_tolerance:
-                self.player.sprite.rect.bottom = tile.rect.top
-                self.player.sprite.direction.y = 0
+        player = self.player.sprite
+        saving_position = player.rect.y
+        collided_y = False
+        log.info(f"Player y = { player.rect.y}, exact y = {self.player.sprite.exact_y}")
+        player.rect.y = self.player.sprite.exact_y
+        #print(player.state, player.direction.x, player.direction.y, player.rect.y, self.on_ground)
+        for tile in pygame.sprite.spritecollide(player, self.tiles.sprites(), 0):
+            collided_y = True
+            log.debug("COLLISION Y")
+            if tile.rect.bottom - player.rect.top < collision_tolerance:
+                player.rect.top = tile.rect.bottom
+                player.direction.y = 0
+            elif player.direction.y > 0:
+            #elif player.direction.y > 0 and player.rect.bottom - tile.rect.top < collision_tolerance:
+                player.rect.bottom = tile.rect.top
+                player.direction.y = 0
                 self.on_ground = True
-                self.player.sprite.jump()
+                #player.jump()
+        player.rect.y = saving_position if not collided_y else player.rect.y
 
     def check_state(self):
         player = self.player.sprite
         if player.direction.x == 0 and self.on_ground:
             player.state = "idle"
-        elif player.direction.y <= 1 and player.direction.x != 0 and player.direction.y >= 0:
+        elif player.direction.x != 0 and self.on_ground:
+        #elif player.direction.y <= 1 and player.direction.x != 0 and player.direction.y >= 0:
             player.state = "run"
-        elif player.direction.y > 1 or player.direction.y < 0:
+        elif player.direction.y > 1 or player.direction.y < 0:  # TODO Redo this expression, prob with just else
             player.state = "jump"
-        #print(player.state, player.direction.x, player.direction.y, player.rect.y, self.on_ground)
+        log.info(f"State = {player.state}, direction x = {player.direction.x}, direction y = {player.direction.y}, rect y = {player.rect.y}, on ground = {self.on_ground}")
 
     def particle_state(self):  # TODO Simplify function
         if self.on_ground and self.player.sprite.direction.y < 0:
@@ -129,10 +167,6 @@ class Level:
                         sprite.rect.x, sprite.rect.y = player.rect.right - 5, player.rect.bottom - 10
                         sprite.flipped = True
         if player.state == "run":
-            # particle_offset = pygame.math.Vector2(10, 15)
-            # run_particle = Particle(self.player.sprite.rect.bottomleft - particle_offset)
-            # run_particle.state = 'run'
-            # self.particles.add(run_particle)
             if player.moving_right:
                 self.running_right = True
                 self.running_left = False
@@ -149,16 +183,39 @@ class Level:
         #     print(f"run left = {self.running_left}, run right = {self.running_right}")
 
     def run(self):
-        self.tiles.update(self.world_shift)
-        self.player.update()
+        """
+        Running level following these consecutive steps:
+        0. Create tiles and other non-player objects
+        1. Get changes to player state according to inputs and external level effects(such as gravity)
+        2. Change player's position
+        3. Process new positions into level internal state(such as collision detection)
+        4. Get player's new state according to new circumstances
+        5. Draw everything
+        :return:
+        """
+
+        # 1.
         self.apply_gravity()
+        self.permit_jump()
+
+        # 2.
+        self.player.update()
+        self.tiles.update(self.world_shift)
+
+        # 3.
         self.collision_x_handler()
         self.collision_y_handler()
+        self.scroll_x()
+
+        # 4.
         self.check_state()
         self.particle_state()
+        log.info("-------------")
+
+        # 5.
         self.tiles.draw(self.surface)
         self.player.draw(self.surface)
-        self.scroll_x()
+
 
 
 

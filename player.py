@@ -1,6 +1,7 @@
 import pygame
 import os
 from maker import refactor_image, new_dir
+from math import ceil
 
 img_dir = new_dir
 if not os.path.exists(img_dir):
@@ -20,8 +21,10 @@ class Player(pygame.sprite.Sprite):
         self.moving_right = True
         self.image = self.states[self.state][0]
         self.rect = self.image.get_rect(topleft=pos)
+        self.exact_x, self.exact_y = float(self.rect.x), float(self.rect.y)
         self.direction = pygame.math.Vector2(0, 0)
         self.speed = pygame.math.Vector2(5, 1)
+        self.shift_speed = self.speed.x
         self.jump_speed = -13
 
     def get_img(self):
@@ -42,8 +45,12 @@ class Player(pygame.sprite.Sprite):
             self.moving_right = True
         else:
             self.direction.x = 0
+        #print(f"Before: y = {self.rect.y}, exact y = {self.exact_y}, direction = {self.direction.y}")
+        self.exact_x = ceil(self.rect.x + self.direction.x * self.speed.x)
+        self.exact_y = ceil(self.rect.y + self.direction.y)
         self.rect.x += self.direction.x * self.speed.x
         self.rect.y += self.direction.y
+        #print(f"After: y = {self.rect.y}, exact y = {self.exact_y}, direction = {self.direction.y}")
         self.frame_index += self.animation_speed
         if self.state != self.prev_state:
             self.frame_index = 0
@@ -53,6 +60,7 @@ class Player(pygame.sprite.Sprite):
         if not self.moving_right:
             self.image = pygame.transform.flip(self.image, True, False)
         self.prev_state = self.state
+        self.speed.x = self.shift_speed
 
     def jump(self):
         keys = pygame.key.get_pressed()
