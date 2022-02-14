@@ -3,10 +3,10 @@ import os
 
 
 class Particle(pygame.sprite.Sprite):
-    def __init__(self, pos, flipped=False):
+    def __init__(self, pos, state, flipped=False):
         super().__init__()
         self.states = {"land": [], "jump": [], "run": []}
-        self.state = "land"
+        self.state = state
         self.prev_state = ""
         self.get_img("dust_particles")
         self.frame_index = 0

@@ -11,31 +11,41 @@ stream_handler = logging.StreamHandler()
 stream_handler.setFormatter(logging.Formatter('%(module)s - %(levelname)s - %(message)s'))
 log.addHandler(stream_handler)
 log.setLevel(logging.DEBUG)
-stream_handler.setLevel(logging.DEBUG)
-
-def read_data(level_map):
-    with open(level_map, 'r') as map1:
-        return map1.read().splitlines()
+stream_handler.setLevel(logging.INFO)
 
 
 class Level:
+    """
+    Class for creating, adjusting and processing level of the game.
+    """
     def __init__(self, level_data, surface):
+        """
+        world_shift - allows us to move camera when player reaches certain lines on the screen
+        on_ground - checks whether player is on the ground
+        :param level_data: level map in txt format
+        :param surface: surface to draw on
+        """
         self.level_data = level_data
         self.surface = surface
+
         self.world_shift = 0
-        self.landing = False
-        self.taking_off = False
-        self.running_right = False
-        self.running_left = False
         self.on_ground = False
         self.gravity = 0.5
-        self.particles = pygame.sprite.Group()
-        self.setup()
 
-    def setup(self):
-        mapping = read_data(self.level_data)
+        self.particles = pygame.sprite.Group()
         self.tiles = pygame.sprite.Group()
-        self.player = pygame.sprite.GroupSingle()
+        self.players = pygame.sprite.GroupSingle()
+
+        self.setup(self.level_data)
+
+    def setup(self, level_data):
+        """
+        Method for setting up our level with objects based on level_data
+        and adding these objects to corresponding sprite groups.
+        :param level_data: level data in format of List[List, List, ...]
+        :return:
+        """
+        mapping = Level.read_data(level_data)
         for row, line in enumerate(mapping):
             for column, item in enumerate(line):
                 x = tile_size * column
@@ -45,14 +55,26 @@ class Level:
                     self.tiles.add(tile)
                 elif item == "2":
                     player = Player((x, y))
-                    self.player.add(player)
+                    self.players.add(player)
 
-    def scroll_x(self):
+    @staticmethod
+    def read_data(level_map):
+        """
+        Method for reading map from file
+        :param level_map: txt file with 0 and 1 rows and columns.
+        :return: level data in format of List[List, List, ...]
+        """
+        with open(level_map, 'r') as map1:
+            return map1.read().splitlines()
+
+    def scroll_x(self, player):
         """
         Scroll the whole level if player reaches certain positions
+        We preserve self.player.shift_speed to be able to revert player's speed back to its previous value
+        so we can interact with it as it is, instead of dealing with world shift speed.
+        :param player: player's sprite
         :return:
         """
-        player = self.player.sprite
         player_x = player.rect.centerx
         direction_x = player.direction.x
         player.shift_speed = player.speed.x
@@ -66,99 +88,139 @@ class Level:
         else:
             self.world_shift = 0
 
-    def apply_gravity(self):
+    def apply_gravity(self, gravity):
         """
         Applying gravity onto player object
         :return: None
         """
-        player = self.player.sprite
-        player.direction.y += self.gravity
+        self.players.sprite.direction.y += gravity
 
-    def permit_jump(self):
+    def permit_jump(self, player):
         """
-
+        Allows player to jump
+        :param player: player's sprite
         :return:
         """
-        player = self.player.sprite
         if self.on_ground:
             player.jump()
 
-    def collision_x_handler(self):
-        collision_tolerance = 10
-        for tile in pygame.sprite.spritecollide(self.player.sprite, self.tiles.sprites(), 0):
-            if tile.rect.right - self.player.sprite.rect.left < collision_tolerance:
-                self.player.sprite.rect.left = tile.rect.right
-                log.debug(f"top tile {tile.rect.top} bot player {self.player.sprite.rect.bottom} bot tile {tile.rect.bottom} top player {self.player.sprite.rect.top}")
-            elif self.player.sprite.rect.right - tile.rect.left < collision_tolerance:
-                self.player.sprite.rect.right = tile.rect.left
-            log.debug(f"COLLIDE {self.player.sprite.rect.left}, {tile.rect.right}")
+    def collision_x_handler(self, player):
+        """
+        Method for handling collisions along X axis
+        We use collision tolerance in order to check from which side collision occurs
+        and to prevent X collision from happening along Y axis.
+        In order to precisely track collision we need to use rounded up values of X and Y
+        rather than rounded down 'normal' values. To do so, we assign coordinates to their
+        corresponding rounded up values, and then revert it if collision doesn't occur.
+        :param player: player's sprite
+        :return:
+        """
+        saving_position = player.rect.x
+        collided_x = False
+        player.rect.x = player.exact_x
 
-    def collision_y_handler(self):
-        self.previous_direction = self.player.sprite.direction.y
-        collision_tolerance = 30
+        collision_tolerance = abs(player.speed.x) + 1
+        for tile in pygame.sprite.spritecollide(player, self.tiles.sprites(), dokill=False):
+            log.info("Collision X")
+            collided_x = True
+            if tile.rect.right - player.rect.left < collision_tolerance:
+                player.rect.left = tile.rect.right
+                log.debug(f"COLLIDE X: player left={player.rect.left}, player y={player.rect.y};"
+                          f" tile right={tile.rect.right}, tile y={tile.rect.y}")
+            elif player.rect.right - tile.rect.left < collision_tolerance:
+                player.rect.right = tile.rect.left
+                log.debug(f"COLLIDE X: player right={player.rect.right}, player y={player.rect.y};"
+                          f" tile left={tile.rect.right}, tile y={tile.rect.y}")
+        player.rect.x = saving_position if not collided_x else player.rect.x
+
+    def collision_y_handler(self, player):
+        """
+        Method for handling collisions along Y axis (see method for X collisions)
+        We use collision tolerance to process collisions happening because of jumping,
+        due to gravity all other collisions happen with top of tiles.
+        Flag on_ground is set when collision with top of the tile occurs.
+        :param player: player's sprite
+        :return:
+        """
+        collision_tolerance = abs(player.jump_speed) + 1
         self.on_ground = False
-        player = self.player.sprite
+
         saving_position = player.rect.y
         collided_y = False
-        log.info(f"Player y = { player.rect.y}, exact y = {self.player.sprite.exact_y}")
-        player.rect.y = self.player.sprite.exact_y
-        #print(player.state, player.direction.x, player.direction.y, player.rect.y, self.on_ground)
-        for tile in pygame.sprite.spritecollide(player, self.tiles.sprites(), 0):
+        player.rect.y = player.exact_y
+        log.debug(f"Player y = {player.rect.y}, exact y = {player.exact_y}")
+
+        for tile in pygame.sprite.spritecollide(player, self.tiles.sprites(), dokill=False):
+            log.info("Collision Y")
             collided_y = True
-            log.debug("COLLISION Y")
             if tile.rect.bottom - player.rect.top < collision_tolerance:
                 player.rect.top = tile.rect.bottom
                 player.direction.y = 0
+                log.debug(f"COLLIDE Y: player x={player.rect.x}, player top={player.rect.top};"
+                          f" tile x={tile.rect.x}, tile bottom={tile.rect.bottom}")
             elif player.direction.y > 0:
-            #elif player.direction.y > 0 and player.rect.bottom - tile.rect.top < collision_tolerance:
                 player.rect.bottom = tile.rect.top
                 player.direction.y = 0
                 self.on_ground = True
-                #player.jump()
+                log.debug(f"COLLIDE Y: player x={player.rect.x}, player bottom={player.rect.bottom};"
+                          f" tile x={tile.rect.x}, tile top={tile.rect.top}")
         player.rect.y = saving_position if not collided_y else player.rect.y
 
-    def check_state(self):
-        player = self.player.sprite
+    def check_state(self, player):
+        """
+        Method for determining player's state for correct animations.
+        :param player: player's sprite
+        :return:
+        """
         if player.direction.x == 0 and self.on_ground:
             player.state = "idle"
         elif player.direction.x != 0 and self.on_ground:
-        #elif player.direction.y <= 1 and player.direction.x != 0 and player.direction.y >= 0:
             player.state = "run"
-        elif player.direction.y > 1 or player.direction.y < 0:  # TODO Redo this expression, prob with just else
-            player.state = "jump"
-        log.info(f"State = {player.state}, direction x = {player.direction.x}, direction y = {player.direction.y}, rect y = {player.rect.y}, on ground = {self.on_ground}")
-
-    def particle_state(self):  # TODO Simplify function
-        if self.on_ground and self.player.sprite.direction.y < 0:
-            self.taking_off = True
-            particle_offset = pygame.math.Vector2(-10, 30)
-            jump_particle = Particle(self.player.sprite.rect.bottomleft - particle_offset)
-            jump_particle.state = 'jump'
-            self.particles.add(jump_particle)
-        elif self.previous_direction > 1.5 and self.on_ground:
-            self.landing = True
-            particle_offset = pygame.math.Vector2(20, 40)
-            landing_particle = Particle(self.player.sprite.rect.bottomleft - particle_offset)
-            landing_particle.state = 'land'
-            self.particles.add(landing_particle)
         else:
-            self.taking_off, self.landing = False, False
-        # if self.taking_off or self.landing:
-        #     print(f"take off={self.taking_off}, landing={self.landing}, {self.previous_direction}, {self.player.sprite.direction.y}")
-        player = self.player.sprite
+            player.state = "jump"
+        log.info(f"State = {player.state}, direction x = {player.direction.x}, direction y = {player.direction.y},"
+                 f" rect y = {player.rect.y}, rect x = {player.rect.x}, on ground = {self.on_ground}")
+
+    def particle_create(self, player):
+        """
+        Method for creating jump, landing and running particles based on
+        player's state and position.
+        :param player: player's sprite
+        :return:
+        """
+        if player.prev_state != "jump" and player.direction.y < 0:
+            particle_offset = pygame.math.Vector2(-10, 30)
+            jump_particle = Particle(player.rect.bottomleft - particle_offset, 'jump')
+            self.particles.add(jump_particle)
+            log.debug(f"Jump particle created {jump_particle}")
+        elif player.prev_state == "jump" and self.on_ground:
+            particle_offset = pygame.math.Vector2(20, 40)
+            landing_particle = Particle(player.rect.bottomleft - particle_offset, 'land')
+            self.particles.add(landing_particle)
+            log.debug(f"Landing particle created {landing_particle}")
+
         if player.prev_state != 'run' and player.state == "run":
+            particle_offset = pygame.math.Vector2(10, 0)
             if player.moving_right:
-                particle_offset = pygame.math.Vector2(10, 0)
-                run_particle = Particle(self.player.sprite.rect.bottomleft - particle_offset)
+                run_particle = Particle(player.rect.bottomleft - particle_offset, 'run')
             else:
-                particle_offset = pygame.math.Vector2(10, 0)
-                run_particle = Particle(self.player.sprite.rect.bottomright - particle_offset, flipped=True)
-            run_particle.state = 'run'
+                run_particle = Particle(player.rect.bottomright - particle_offset, 'run', flipped=True)
             self.particles.add(run_particle)
-        for sprite in self.particles.sprites():
+            log.debug(f"Run particle created {run_particle}")
+
+    def particle_draw(self, player, particles):
+        """
+        Method for drawing particles. Run particle should be removed as soon
+        as player stops running, jump and landing particles should finish
+        their full animations. Offsets are hardcoded for particular particles.
+        :param player: player's sprite
+        :param particles: group of particles to draw
+        :return:
+        """
+        for sprite in particles.sprites():
             if sprite.state == "run":
                 if player.state != 'run':
-                    self.particles.remove(sprite)
+                    particles.remove(sprite)
                 else:
                     if player.moving_right:
                         sprite.rect.x, sprite.rect.y = player.rect.x - 10, player.rect.bottom - 10
@@ -166,21 +228,8 @@ class Level:
                     else:
                         sprite.rect.x, sprite.rect.y = player.rect.right - 5, player.rect.bottom - 10
                         sprite.flipped = True
-        if player.state == "run":
-            if player.moving_right:
-                self.running_right = True
-                self.running_left = False
-            else:
-                self.running_left = True
-                self.running_right = False
-        else:
-            # self.particles.remove(run_particle)
-            self.running_left, self.running_right = False, False
-        self.particles.update()
-        #print(f"Particle: {self.particles.sprite.rect.x}, {self.particles.sprite.rect.y}, player: {player.rect.x}, {player.rect.y}")
-        self.particles.draw(self.surface)
-        # if self.running_right or self.running_left:
-        #     print(f"run left = {self.running_left}, run right = {self.running_right}")
+        particles.update()
+        particles.draw(self.surface)
 
     def run(self):
         """
@@ -195,26 +244,27 @@ class Level:
         """
 
         # 1.
-        self.apply_gravity()
-        self.permit_jump()
+        self.apply_gravity(self.gravity)
+        self.permit_jump(self.players.sprite)
 
         # 2.
-        self.player.update()
+        self.players.update()
         self.tiles.update(self.world_shift)
 
         # 3.
-        self.collision_x_handler()
-        self.collision_y_handler()
-        self.scroll_x()
+        self.collision_x_handler(self.players.sprite)
+        self.collision_y_handler(self.players.sprite)
+        self.scroll_x(self.players.sprite)
 
         # 4.
-        self.check_state()
-        self.particle_state()
+        self.check_state(self.players.sprite)
+        self.particle_create(self.players.sprite)
+        self.particle_draw(self.players.sprite, self.particles)
         log.info("-------------")
 
         # 5.
         self.tiles.draw(self.surface)
-        self.player.draw(self.surface)
+        self.players.draw(self.surface)
 
 
 
