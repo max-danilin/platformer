@@ -11,7 +11,7 @@ stream_handler = logging.StreamHandler()
 stream_handler.setFormatter(logging.Formatter('%(module)s - %(levelname)s - %(message)s'))
 log.addHandler(stream_handler)
 log.setLevel(logging.DEBUG)
-stream_handler.setLevel(logging.INFO)
+stream_handler.setLevel(logging.DEBUG)
 
 
 class Level:
@@ -192,12 +192,12 @@ class Level:
             particle_offset = pygame.math.Vector2(-10, 30)
             jump_particle = Particle(player.rect.bottomleft - particle_offset, 'jump')
             self.particles.add(jump_particle)
-            log.debug(f"Jump particle created {jump_particle}")
+            log.debug(f"Jump particle created {jump_particle.rect.x}, {jump_particle.rect.y}")
         elif player.prev_state == "jump" and self.on_ground:
             particle_offset = pygame.math.Vector2(20, 40)
             landing_particle = Particle(player.rect.bottomleft - particle_offset, 'land')
             self.particles.add(landing_particle)
-            log.debug(f"Landing particle created {landing_particle}")
+            log.debug(f"Landing particle created {landing_particle.rect.x}, {landing_particle.rect.y}")
 
         if player.prev_state != 'run' and player.state == "run":
             particle_offset = pygame.math.Vector2(10, 0)
@@ -206,7 +206,7 @@ class Level:
             else:
                 run_particle = Particle(player.rect.bottomright - particle_offset, 'run', flipped=True)
             self.particles.add(run_particle)
-            log.debug(f"Run particle created {run_particle}")
+            log.debug(f"Run particle created {run_particle.rect.x}, {run_particle.rect.y}")
 
     def particle_draw(self, player, particles):
         """
@@ -228,7 +228,7 @@ class Level:
                     else:
                         sprite.rect.x, sprite.rect.y = player.rect.right - 5, player.rect.bottom - 10
                         sprite.flipped = True
-        particles.update()
+        particles.update(self.world_shift)
         particles.draw(self.surface)
 
     def run(self):

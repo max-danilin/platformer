@@ -1,22 +1,38 @@
 import pygame
 import os
+from settings import *
 
 
 class Particle(pygame.sprite.Sprite):
+    """
+    Class for creating and drawing particles
+    """
     def __init__(self, pos, state, flipped=False):
+        """
+        states - dict that contains images for different types of particles
+        :param pos: position of sprite
+        :param state: type of particle to create
+        :param flipped: whether we should flip particle image
+        """
         super().__init__()
         self.states = {"land": [], "jump": [], "run": []}
         self.state = state
         self.prev_state = ""
-        self.get_img("dust_particles")
-        self.frame_index = 0
-        self.animation_speed = 0.15
-        self.pos = pos
-        self.flipped = flipped
+        self.get_img(PARTICLE_IMAGES_DIR)
+
         self.image = self.states[self.state][0]
         self.rect = self.image.get_rect(topleft=pos)
+        self.flipped = flipped
+
+        self.frame_index = 0
+        self.animation_speed = ANIMATION_SPEED
 
     def get_img(self, img_dir):
+        """
+        Method for loading all images for all the states.
+        :param img_dir: image directory
+        :return:
+        """
         for state in self.states:
             state_path = os.path.join(img_dir, state)
             for file in os.listdir(state_path):
@@ -25,21 +41,29 @@ class Particle(pygame.sprite.Sprite):
                     img_load = pygame.image.load(path).convert_alpha()
                     self.states[state].append(img_load)
 
-    def update(self):
+    def update(self, x_shift):
+        """
+        Method for drawing particles sprites according to their state.
+        We update particle positions separately because they depend on player's object.
+        If we draw jumping or landing particles we need to kill them after animation is over.
+        Also we flip particle sprites depending on player's facing direction and move jumping
+        and landing particles if camera moves.
+        :param x_shift: speed of camera movement
+        :return:
+        """
         self.frame_index += self.animation_speed
         if self.frame_index >= len(self.states[self.state]):
-            if self.state == 'run':
-                self.frame_index = 0
-            else:
-                self.frame_index = 0  # TODO implement better way to deal with list overflow
+            self.frame_index = 0
+            if self.state != 'run':
                 self.kill()
         if self.state != self.prev_state:
             self.frame_index = 0
-        # print(self.states)
-        # print(self.frame_index, self.state)
         self.image = self.states[self.state][int(self.frame_index)]
+
         if self.flipped:
             self.image = pygame.transform.flip(self.image, True, False)
         self.prev_state = self.state
-        #self.rect = self.image.get_rect(topleft=self.pos)
+
+        if self.state != "run":
+            self.rect.x += x_shift
 
