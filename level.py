@@ -1,9 +1,10 @@
 import pygame
-from tiles import Tile
-from settings import tile_size, RIGHT_SCREEN_EDGE, LEFT_SCREEN_EDGE
+from tiles import Tile, StaticTile, EnemyTile, ObjectTile, CollisionTreeTile
+from settings import *
 from player import Player
 from particle import Particle
 import logging
+import utils
 
 log = logging.getLogger("platform")
 
@@ -11,7 +12,7 @@ stream_handler = logging.StreamHandler()
 stream_handler.setFormatter(logging.Formatter('%(module)s - %(levelname)s - %(message)s'))
 log.addHandler(stream_handler)
 log.setLevel(logging.DEBUG)
-stream_handler.setLevel(logging.DEBUG)
+stream_handler.setLevel(logging.INFO)
 
 
 class Level:
@@ -33,29 +34,80 @@ class Level:
         self.gravity = 0.5
 
         self.particles = pygame.sprite.Group()
-        self.tiles = pygame.sprite.Group()
+
+        self.terrain_tiles = pygame.sprite.Group()
+        self.background_tiles = pygame.sprite.Group()
+        self.enemy_tiles = pygame.sprite.Group()
+        self.objects_tiles = pygame.sprite.Group()
+
         self.players = pygame.sprite.GroupSingle()
 
-        self.setup(self.level_data)
+        for key in level_0:
+            self.create_tile_group(key)
 
-    def setup(self, level_data):
-        """
-        Method for setting up our level with objects based on level_data
-        and adding these objects to corresponding sprite groups.
-        :param level_data: level data in format of List[List, List, ...]
-        :return:
-        """
-        mapping = Level.read_data(level_data)
-        for row, line in enumerate(mapping):
+        self.all_tiles = [self.background_tiles, self.terrain_tiles, self.enemy_tiles, self.objects_tiles]
+        # self.setup(self.level_data)
+
+    # def setup(self, level_data):
+    #     """
+    #     Method for setting up our level with objects based on level_data
+    #     and adding these objects to corresponding sprite groups.
+    #     :param level_data: level data in format of List[List, List, ...]
+    #     :return:
+    #     """
+    #     mapping = Level.read_data(level_data)
+    #     for row, line in enumerate(mapping):
+    #         for column, item in enumerate(line):
+    #             x = tile_size * column
+    #             y = tile_size * row
+    #             if item == '1':
+    #                 tile = Tile(tile_size, (x, y))
+    #                 self.tiles.add(tile)
+    #             elif item == "2":
+    #                 player = Player((x, y))
+    #                 self.players.add(player)
+
+    def create_tile_group(self, type):
+        tilefile = utils.import_csv(level_0[type])
+        row = 0
+        for line in tilefile:
             for column, item in enumerate(line):
-                x = tile_size * column
-                y = tile_size * row
-                if item == '1':
-                    tile = Tile(tile_size, (x, y))
-                    self.tiles.add(tile)
-                elif item == "2":
-                    player = Player((x, y))
-                    self.players.add(player)
+                if item != '-1':
+                    x = tile_size * column
+                    y = tile_size * row
+                    if type == 'terrain':
+                        terrain_tile_list = utils.import_tileset('graphics/tiles_new/Tileset_mod.png')
+                        terrain_surf = terrain_tile_list[int(item)]
+                        sprite = Tile(tile_size, (x, y), terrain_surf)
+                        self.terrain_tiles.add(sprite)
+                    if type == 'enemies':
+                        enemies_tile_list = utils.import_tileset('graphics/enemy/setup_tile.png')
+                        enemies_surf = enemies_tile_list[int(item)]
+                        if item == '0':
+                            sprite = EnemyTile(tile_size, (x, y), enemies_surf)
+                            self.enemy_tiles.add(sprite)
+                    if type == 'player':
+                        player_tile_list = utils.import_tileset('graphics/setup_tiles.png')
+                        if item == '0':
+                            player = Player((x, y))
+                            self.players.add(player)
+                    if type == 'grass':
+                        img = pygame.image.load(grass_tiles[int(item)]).convert_alpha()
+                        sprite = StaticTile(tile_size, (x, y), img)
+                        self.background_tiles.add(sprite)
+                    if type == 'trees':
+                        img = pygame.image.load(tree_tiles[int(item)]).convert_alpha()
+                        sprite = StaticTile(tile_size, (x, y), img)
+                        self.background_tiles.add(sprite)
+                    if type == 'fg trees':
+                        img = pygame.image.load(fg_trees[int(item)]).convert_alpha()
+                        sprite = CollisionTreeTile(tile_size, (x, y), img)
+                        self.background_tiles.add(sprite)
+                    if type == 'coins':
+                        img = pygame.image.load(coin_tiles[int(item)]).convert_alpha()
+                        sprite = ObjectTile(tile_size, (x, y), img)
+                        self.objects_tiles.add(sprite)
+            row += 1
 
     @staticmethod
     def read_data(level_map):
@@ -104,7 +156,7 @@ class Level:
         if self.on_ground:
             player.jump()
 
-    def collision_x_handler(self, player):
+    def collision_x_handler(self, player, tiles):
         """
         Method for handling collisions along X axis
         We use collision tolerance in order to check from which side collision occurs
@@ -112,6 +164,7 @@ class Level:
         In order to precisely track collision we need to use rounded up values of X and Y
         rather than rounded down 'normal' values. To do so, we assign coordinates to their
         corresponding rounded up values, and then revert it if collision doesn't occur.
+        :param tiles: tiles to check collision with
         :param player: player's sprite
         :return:
         """
@@ -120,7 +173,7 @@ class Level:
         player.rect.x = player.exact_x
 
         collision_tolerance = abs(player.speed.x) + 1
-        for tile in pygame.sprite.spritecollide(player, self.tiles.sprites(), dokill=False):
+        for tile in pygame.sprite.spritecollide(player, tiles, dokill=False):
             log.info("Collision X")
             collided_x = True
             if tile.rect.right - player.rect.left < collision_tolerance:
@@ -133,12 +186,13 @@ class Level:
                           f" tile left={tile.rect.right}, tile y={tile.rect.y}")
         player.rect.x = saving_position if not collided_x else player.rect.x
 
-    def collision_y_handler(self, player):
+    def collision_y_handler(self, player, tiles):
         """
         Method for handling collisions along Y axis (see method for X collisions)
         We use collision tolerance to process collisions happening because of jumping,
         due to gravity all other collisions happen with top of tiles.
         Flag on_ground is set when collision with top of the tile occurs.
+        :param tiles: tiles to check collision with
         :param player: player's sprite
         :return:
         """
@@ -150,7 +204,7 @@ class Level:
         player.rect.y = player.exact_y
         log.debug(f"Player y = {player.rect.y}, exact y = {player.exact_y}")
 
-        for tile in pygame.sprite.spritecollide(player, self.tiles.sprites(), dokill=False):
+        for tile in pygame.sprite.spritecollide(player, tiles, dokill=False):
             log.info("Collision Y")
             collided_y = True
             if tile.rect.bottom - player.rect.top < collision_tolerance:
@@ -249,11 +303,12 @@ class Level:
 
         # 2.
         self.players.update()
-        self.tiles.update(self.world_shift)
+        for tile in self.all_tiles:
+            tile.update(self.world_shift)
 
         # 3.
-        self.collision_x_handler(self.players.sprite)
-        self.collision_y_handler(self.players.sprite)
+        self.collision_x_handler(self.players.sprite, self.terrain_tiles.sprites())
+        self.collision_y_handler(self.players.sprite, self.terrain_tiles.sprites())
         self.scroll_x(self.players.sprite)
 
         # 4.
@@ -263,7 +318,8 @@ class Level:
         log.info("-------------")
 
         # 5.
-        self.tiles.draw(self.surface)
+        for tile in self.all_tiles:
+            tile.draw(self.surface)
         self.players.draw(self.surface)
 
 
