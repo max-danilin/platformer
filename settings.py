@@ -10,17 +10,20 @@ LEFT_SCREEN_EDGE = screen_width / 5
 RIGHT_SCREEN_EDGE = screen_width * 4 / 5
 
 PLAYER_SPEED = 5
+ENEMY_SPEED = 1
 JUMP_SPEED = -13
 ANIMATION_SPEED = 0.15
 
 PLAYER_IMAGES_DIR = "img_new"
 PARTICLE_IMAGES_DIR = "dust_particles"
+COINS_DIR = "graphics/collect_new/coins"
+ENEMY_DIR = "graphics/enemy/run"
 
 # Levels data
 level_0 = {
     'terrain': 'lvl 0/level 0_terrain.csv',
     'coins': 'lvl 0/level 0_coins.csv',
-   # 'constrains': 'lvl 0/level 0_constrains.csv',
+    'constrains': 'lvl 0/level 0_constrains.csv',
     'enemies': 'lvl 0/level 0_enemies.csv',
     'player': 'lvl 0/level 0_player.csv',
     'grass': 'lvl 0/level 0_grass.csv',

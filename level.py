@@ -1,5 +1,5 @@
 import pygame
-from tiles import Tile, StaticTile, EnemyTile, ObjectTile, CollisionTreeTile
+from tiles import Tile, StaticTile, EnemyTile, ObjectTile, CollisionTreeTile, CoinTile, TerrainTile
 from settings import *
 from player import Player
 from particle import Particle
@@ -39,6 +39,7 @@ class Level:
         self.background_tiles = pygame.sprite.Group()
         self.enemy_tiles = pygame.sprite.Group()
         self.objects_tiles = pygame.sprite.Group()
+        self.constrains = pygame.sprite.Group()
 
         self.players = pygame.sprite.GroupSingle()
 
@@ -68,6 +69,11 @@ class Level:
     #                 self.players.add(player)
 
     def create_tile_group(self, type):
+        """
+        Method for creating tile groups
+        :param type:
+        :return:
+        """
         tilefile = utils.import_csv(level_0[type])
         row = 0
         for line in tilefile:
@@ -78,14 +84,17 @@ class Level:
                     if type == 'terrain':
                         terrain_tile_list = utils.import_tileset('graphics/tiles_new/Tileset_mod.png')
                         terrain_surf = terrain_tile_list[int(item)]
-                        sprite = Tile(tile_size, (x, y), terrain_surf)
+                        sprite = TerrainTile(tile_size, (x, y), terrain_surf)
                         self.terrain_tiles.add(sprite)
-                    if type == 'enemies':
+                    if type in ('enemies', 'constrains'):
                         enemies_tile_list = utils.import_tileset('graphics/enemy/setup_tile.png')
                         enemies_surf = enemies_tile_list[int(item)]
                         if item == '0':
                             sprite = EnemyTile(tile_size, (x, y), enemies_surf)
                             self.enemy_tiles.add(sprite)
+                        elif item == '1':
+                            sprite = Tile(tile_size, (x, y))
+                            self.constrains.add(sprite)
                     if type == 'player':
                         player_tile_list = utils.import_tileset('graphics/setup_tiles.png')
                         if item == '0':
@@ -105,7 +114,10 @@ class Level:
                         self.background_tiles.add(sprite)
                     if type == 'coins':
                         img = pygame.image.load(coin_tiles[int(item)]).convert_alpha()
-                        sprite = ObjectTile(tile_size, (x, y), img)
+                        if item == '0':
+                            sprite = CoinTile(tile_size, (x, y), img)
+                        else:
+                            sprite = ObjectTile(tile_size, (x, y), img)
                         self.objects_tiles.add(sprite)
             row += 1
 
@@ -155,6 +167,11 @@ class Level:
         """
         if self.on_ground:
             player.jump()
+
+    def enemy_collision(self, enemy, tiles):
+        for tile in pygame.sprite.spritecollide(enemy, tiles, dokill=False):
+            enemy.enemy_speed *= -1
+            enemy.flipped = not enemy.flipped
 
     def collision_x_handler(self, player, tiles):
         """
@@ -305,10 +322,13 @@ class Level:
         self.players.update()
         for tile in self.all_tiles:
             tile.update(self.world_shift)
+        self.constrains.update(self.world_shift)
 
         # 3.
         self.collision_x_handler(self.players.sprite, self.terrain_tiles.sprites())
         self.collision_y_handler(self.players.sprite, self.terrain_tiles.sprites())
+        for enemy in self.enemy_tiles.sprites():
+            self.enemy_collision(enemy, self.constrains.sprites())
         self.scroll_x(self.players.sprite)
 
         # 4.
