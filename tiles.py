@@ -80,6 +80,8 @@ class AnimatedTile(Tile):
 class ObjectTile(AnimatedTile):
     def __init__(self, size, pos, img):
         super().__init__(size, pos, img)
+        self.value = 0
+        self.hp_recovery = False
         x, y = pos
         self.rect = self.image.get_rect(bottomleft=(x+15, y+size))
 
@@ -90,6 +92,8 @@ class CoinTile(AnimatedTile):
         self.get_img(COINS_DIR)
         self.image = self.images[0]
         self.animated = True
+        self.value = 1
+        self.hp_recovery = False
         x, y = pos
         self.rect = self.image.get_rect(bottomleft=(x+15, y+size))
 

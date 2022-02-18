@@ -37,6 +37,10 @@ class Player(pygame.sprite.Sprite):
         self.shift_speed = self.speed.x
         self.jump_speed = JUMP_SPEED
 
+        self.last_hit = pygame.time.get_ticks()
+        self.lives = 5
+        self.coins = 0
+
         self.frame_index = 0
         self.animation_speed = ANIMATION_SPEED
         self.moving_right = True

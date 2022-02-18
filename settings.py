@@ -9,6 +9,7 @@ screen_height = len(mapping) * tile_size
 LEFT_SCREEN_EDGE = screen_width / 5
 RIGHT_SCREEN_EDGE = screen_width * 4 / 5
 
+AFTER_DAMAGE_INVUL = 1000
 PLAYER_SPEED = 5
 ENEMY_SPEED = 1
 JUMP_SPEED = -13

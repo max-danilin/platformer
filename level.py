@@ -5,6 +5,7 @@ from player import Player
 from particle import Particle
 import logging
 import utils
+import sys
 
 log = logging.getLogger("platform")
 
@@ -118,6 +119,12 @@ class Level:
                             sprite = CoinTile(tile_size, (x, y), img)
                         else:
                             sprite = ObjectTile(tile_size, (x, y), img)
+                            if item == '1':
+                                sprite.value = 5
+                            elif item == '3':
+                                sprite.value = 10
+                            elif item == '2':
+                                sprite.hp_recovery = True
                         self.objects_tiles.add(sprite)
             row += 1
 
@@ -159,6 +166,14 @@ class Level:
         """
         self.players.sprite.direction.y += gravity
 
+    def show_text(self, lives, coins, surface):
+        pygame.font.init()
+        font = pygame.font.SysFont('Arial', 30)
+        surf_lives = font.render(f"Player lives = {lives}", True, 'red')
+        surf_coins = font.render(f"Player coins = {coins}", True, 'red')
+        surface.blit(surf_lives, (30, 30))
+        surface.blit(surf_coins, (300, 30))
+
     def permit_jump(self, player):
         """
         Allows player to jump
@@ -168,8 +183,26 @@ class Level:
         if self.on_ground:
             player.jump()
 
-    def enemy_collision(self, enemy, tiles):
-        for tile in pygame.sprite.spritecollide(enemy, tiles, dokill=False):
+    def check_defeat(self, player):
+        if player.rect.y > screen_height or player.lives <= 0:
+            pygame.quit()
+            sys.exit()
+
+    def objects_collision(self, player, objects):
+        for object in pygame.sprite.spritecollide(player, objects, dokill=True):
+            player.coins += object.value
+            if object.hp_recovery:
+                player.lives += 1
+
+    def enemy_collision(self, player, enemies):
+        if pygame.sprite.spritecollide(player, enemies, dokill=False):
+            now = pygame.time.get_ticks()
+            if now - player.last_hit >= AFTER_DAMAGE_INVUL:
+                player.last_hit = now
+                player.lives -= 1
+
+    def enemy_constrains(self, enemy, tiles):
+        if pygame.sprite.spritecollide(enemy, tiles, dokill=False):
             enemy.enemy_speed *= -1
             enemy.flipped = not enemy.flipped
 
@@ -317,6 +350,7 @@ class Level:
         # 1.
         self.apply_gravity(self.gravity)
         self.permit_jump(self.players.sprite)
+        self.show_text(self.players.sprite.lives, self.players.sprite.coins, self.surface)
 
         # 2.
         self.players.update()
@@ -325,13 +359,16 @@ class Level:
         self.constrains.update(self.world_shift)
 
         # 3.
-        self.collision_x_handler(self.players.sprite, self.terrain_tiles.sprites())
-        self.collision_y_handler(self.players.sprite, self.terrain_tiles.sprites())
+        self.collision_x_handler(self.players.sprite, self.terrain_tiles)
+        self.collision_y_handler(self.players.sprite, self.terrain_tiles)
+        self.objects_collision(self.players.sprite, self.objects_tiles)
+        self.enemy_collision(self.players.sprite, self.enemy_tiles)
         for enemy in self.enemy_tiles.sprites():
-            self.enemy_collision(enemy, self.constrains.sprites())
+            self.enemy_constrains(enemy, self.constrains)
         self.scroll_x(self.players.sprite)
 
         # 4.
+        self.check_defeat(self.players.sprite)
         self.check_state(self.players.sprite)
         self.particle_create(self.players.sprite)
         self.particle_draw(self.players.sprite, self.particles)
