@@ -6,6 +6,7 @@ from particle import Particle
 import logging
 import utils
 import sys
+from decoration import Sky, Water, Clouds
 
 log = logging.getLogger("platform")
 
@@ -33,6 +34,8 @@ class Level:
         self.world_shift = 0
         self.on_ground = False
         self.gravity = 0.5
+        self.level_width = 0
+        self.completed = False
 
         self.particles = pygame.sprite.Group()
 
@@ -41,6 +44,7 @@ class Level:
         self.enemy_tiles = pygame.sprite.Group()
         self.objects_tiles = pygame.sprite.Group()
         self.constrains = pygame.sprite.Group()
+        self.level_end = pygame.sprite.Group()
 
         self.players = pygame.sprite.GroupSingle()
 
@@ -48,6 +52,10 @@ class Level:
             self.create_tile_group(key)
 
         self.all_tiles = [self.background_tiles, self.terrain_tiles, self.enemy_tiles, self.objects_tiles]
+
+        self.sky = Sky(8)
+        self.water = Water(screen_height - 40, self.level_width)
+        self.clouds = Clouds(400, self.level_width, 20)
         # self.setup(self.level_data)
 
     # def setup(self, level_data):
@@ -78,6 +86,8 @@ class Level:
         tilefile = utils.import_csv(level_0[type])
         row = 0
         for line in tilefile:
+            if not self.level_width:
+                self.level_width = len(line) * tile_size
             for column, item in enumerate(line):
                 if item != '-1':
                     x = tile_size * column
@@ -101,6 +111,9 @@ class Level:
                         if item == '0':
                             player = Player((x, y))
                             self.players.add(player)
+                        elif item == '1':
+                            sprite = Tile(tile_size, (x,y))
+                            self.level_end.add(sprite)
                     if type == 'grass':
                         img = pygame.image.load(grass_tiles[int(item)]).convert_alpha()
                         sprite = StaticTile(tile_size, (x, y), img)
@@ -169,8 +182,12 @@ class Level:
     def show_text(self, lives, coins, surface):
         pygame.font.init()
         font = pygame.font.SysFont('Arial', 30)
+        font_end = pygame.font.SysFont('Arial', 60)
         surf_lives = font.render(f"Player lives = {lives}", True, 'red')
         surf_coins = font.render(f"Player coins = {coins}", True, 'red')
+        if self.completed:
+            surf_finish = font_end.render(f"Level completed!", True, 'red')
+            surface.blit(surf_finish, (300, 300))
         surface.blit(surf_lives, (30, 30))
         surface.blit(surf_coins, (300, 30))
 
@@ -205,6 +222,10 @@ class Level:
         if pygame.sprite.spritecollide(enemy, tiles, dokill=False):
             enemy.enemy_speed *= -1
             enemy.flipped = not enemy.flipped
+
+    def level_finish(self, player, tiles):
+        if pygame.sprite.spritecollide(player, tiles, dokill=False):
+            self.completed = True
 
     def collision_x_handler(self, player, tiles):
         """
@@ -347,6 +368,9 @@ class Level:
         :return:
         """
 
+        self.sky.draw(self.surface)
+        self.clouds.draw(self.surface, self.world_shift)
+        self.water.draw(self.surface, self.world_shift)
         # 1.
         self.apply_gravity(self.gravity)
         self.permit_jump(self.players.sprite)
@@ -357,12 +381,14 @@ class Level:
         for tile in self.all_tiles:
             tile.update(self.world_shift)
         self.constrains.update(self.world_shift)
+        self.level_end.update(self.world_shift)
 
         # 3.
         self.collision_x_handler(self.players.sprite, self.terrain_tiles)
         self.collision_y_handler(self.players.sprite, self.terrain_tiles)
         self.objects_collision(self.players.sprite, self.objects_tiles)
         self.enemy_collision(self.players.sprite, self.enemy_tiles)
+        self.level_finish(self.players.sprite, self.level_end)
         for enemy in self.enemy_tiles.sprites():
             self.enemy_constrains(enemy, self.constrains)
         self.scroll_x(self.players.sprite)
@@ -378,6 +404,7 @@ class Level:
         for tile in self.all_tiles:
             tile.draw(self.surface)
         self.players.draw(self.surface)
+
 
 
 

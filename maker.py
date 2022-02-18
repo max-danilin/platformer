@@ -64,4 +64,3 @@ def refactor_tile_image(size_x, size_y):
 #     im = im.resize((24, 24))
 #     path = os.path.join(new_dir, name)
 #     im.save(path)
-
