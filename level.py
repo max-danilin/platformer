@@ -13,15 +13,15 @@ log = logging.getLogger("platform")
 stream_handler = logging.StreamHandler()
 stream_handler.setFormatter(logging.Formatter('%(module)s - %(levelname)s - %(message)s'))
 log.addHandler(stream_handler)
-log.setLevel(logging.DEBUG)
-stream_handler.setLevel(logging.INFO)
+log.setLevel(logging.CRITICAL)  # DEBUG
+stream_handler.setLevel(logging.CRITICAL)  # INFO
 
 
 class Level: # TODO Investigate lags
     """
     Class for creating, adjusting and processing level of the game.
     """
-    def __init__(self, level_data, surface):
+    def __init__(self, level_data, surface, player):
         """
         world_shift - allows us to move camera when player reaches certain lines on the screen
         on_ground - checks whether player is on the ground
@@ -30,6 +30,7 @@ class Level: # TODO Investigate lags
         """
         self.level_data = level_data
         self.surface = surface
+        self.player = player
 
         self.world_shift = 0
         self.on_ground = False
@@ -89,10 +90,10 @@ class Level: # TODO Investigate lags
                     if type == 'player':
                         player_tile_list = utils.import_tileset('graphics/setup_tiles.png')
                         if item == '0':
-                            player = Player((x, y))
-                            self.players.add(player)
+                            self.player.rect.topleft = (x, y)
+                            self.players.add(self.player)
                         elif item == '1':
-                            sprite = Tile(tile_size, (x,y))
+                            sprite = Tile(tile_size, (x, y))
                             self.level_end.add(sprite)
                     if type == 'grass':
                         img = pygame.image.load(grass_tiles[int(item)]).convert_alpha()

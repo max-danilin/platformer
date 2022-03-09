@@ -6,8 +6,9 @@ from collections import namedtuple
 
 
 class Overworld:
-    def __init__(self, surface):
+    def __init__(self, surface, player):
         self.surface = surface
+        self.player = player
         self.brick_levels = pygame.sprite.Group()
         self.players = pygame.sprite.GroupSingle()
         self.add_levels()
@@ -23,9 +24,8 @@ class Overworld:
             self.brick_levels.add(level)
 
     def create_player(self):
-        player = Player(self.points[0])
-        player.rect.center = self.points[0]
-        self.players.add(player)
+        self.player.rect.center = self.points[0]
+        self.players.add(self.player)
 
     @staticmethod
     def line_equation(x, p0, p1):
@@ -63,16 +63,31 @@ class Overworld:
         for brick in self.brick_levels.sprites():
             if sprite.rect.centerx in range(brick.rect.x, brick.rect.right) \
                     and sprite.rect.centery in range(brick.rect.top, brick.rect.bottom):
-                return brick.level
+                return brick
 
     def go_to_level(self):
         keys = pygame.key.get_pressed()
-        level = self.check_position()
-        if level and keys[pygame.K_RETURN]:
+        brick = self.check_position()
+        if brick and keys[pygame.K_RETURN] and brick.activate:
             self.proceed_to_level = True
-            return level
+            return brick
         else:
             return None
+
+    def get_brick_by_level(self, level):
+        for brick in self.brick_levels.sprites():
+            if level == brick.name:
+                return brick
+
+    def check_level_activation(self):
+        for brick in self.brick_levels.sprites():
+            required_level = []
+            if not brick.activate:
+                for level in brick.for_activation:
+                    lb = self.get_brick_by_level(level)
+                    required_level.append(lb.completed)
+                if all(required_level):
+                    brick.activate = True
 
     def draw_lines(self):
         pygame.draw.lines(self.surface, 'red', False, self.points, 10)
@@ -84,6 +99,6 @@ class Overworld:
         self.player_movement()
         self.player_set_animation()
         self.go_to_level()
-        self.brick_levels.draw(self.surface)
         self.draw_lines()
+        self.brick_levels.draw(self.surface)
         self.players.draw(self.surface)

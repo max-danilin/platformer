@@ -36,10 +36,10 @@ level_0 = {
 levels = [level_0, ]
 
 level_bricks = {
-    'level_0': {'pos': (120, 400), 'level': levels[0], 'activate': True, 'completed': False},
-    'level_1': {'pos': (220, 200), 'level': levels[0], 'activate': True, 'completed': False},
-    'level_2': {'pos': (320, 400), 'level': levels[0], 'activate': True, 'completed': False},
-    'level_3': {'pos': (420, 200), 'level': levels[0], 'activate': True, 'completed': False},
+    'level_0': {'name': 'level_0', 'pos': (120, 400), 'level': levels[0], 'activate': True, 'completed': False, 'for_activation': None},
+    'level_1': {'name': 'level_1', 'pos': (220, 200), 'level': levels[0], 'activate': True, 'completed': False, 'for_activation': None},
+    'level_2': {'name': 'level_2', 'pos': (320, 400), 'level': levels[0], 'activate': False, 'completed': False, 'for_activation': ('level_0', 'level_1')},
+    'level_3': {'name': 'level_3', 'pos': (420, 200), 'level': levels[0], 'activate': False, 'completed': False, 'for_activation': ('level_2',)},
 }
 
 grass_tiles = {
