@@ -17,7 +17,7 @@ log.setLevel(logging.DEBUG)
 stream_handler.setLevel(logging.INFO)
 
 
-class Level:
+class Level: # TODO Investigate lags
     """
     Class for creating, adjusting and processing level of the game.
     """
@@ -48,7 +48,7 @@ class Level:
 
         self.players = pygame.sprite.GroupSingle()
 
-        for key in level_0:
+        for key in self.level_data:
             self.create_tile_group(key)
 
         self.all_tiles = [self.background_tiles, self.terrain_tiles, self.enemy_tiles, self.objects_tiles]
@@ -56,34 +56,14 @@ class Level:
         self.sky = Sky(8)
         self.water = Water(screen_height - 40, self.level_width)
         self.clouds = Clouds(400, self.level_width, 20)
-        # self.setup(self.level_data)
-
-    # def setup(self, level_data):
-    #     """
-    #     Method for setting up our level with objects based on level_data
-    #     and adding these objects to corresponding sprite groups.
-    #     :param level_data: level data in format of List[List, List, ...]
-    #     :return:
-    #     """
-    #     mapping = Level.read_data(level_data)
-    #     for row, line in enumerate(mapping):
-    #         for column, item in enumerate(line):
-    #             x = tile_size * column
-    #             y = tile_size * row
-    #             if item == '1':
-    #                 tile = Tile(tile_size, (x, y))
-    #                 self.tiles.add(tile)
-    #             elif item == "2":
-    #                 player = Player((x, y))
-    #                 self.players.add(player)
 
     def create_tile_group(self, type):
         """
-        Method for creating tile groups
-        :param type:
+        Method for creating tile groups for terrain, trees, enemies ans so son
+        :param type: type of tiles to create
         :return:
         """
-        tilefile = utils.import_csv(level_0[type])
+        tilefile = utils.import_csv(self.level_data[type])
         row = 0
         for line in tilefile:
             if not self.level_width:
@@ -140,16 +120,6 @@ class Level:
                                 sprite.hp_recovery = True
                         self.objects_tiles.add(sprite)
             row += 1
-
-    @staticmethod
-    def read_data(level_map):
-        """
-        Method for reading map from file
-        :param level_map: txt file with 0 and 1 rows and columns.
-        :return: level data in format of List[List, List, ...]
-        """
-        with open(level_map, 'r') as map1:
-            return map1.read().splitlines()
 
     def scroll_x(self, player):
         """

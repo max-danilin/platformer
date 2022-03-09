@@ -28,7 +28,3 @@ def import_tileset(path):
             cut_tiles.append(new_surf)
     return cut_tiles
 
-
-# m = import_csv(level_0['terrain'])
-# for item in m:
-#     print(item)

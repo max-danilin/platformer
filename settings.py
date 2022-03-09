@@ -1,10 +1,10 @@
-level_map = 'map1'
-with open(level_map, 'r') as map1:
-    mapping = map1.read().splitlines()
+with open('lvl 0/level 0_terrain.csv', 'r') as map_sample:
+    mapping = map_sample.read().splitlines()
 
 tile_size = 64
 screen_width = 1200
 screen_height = len(mapping) * tile_size
+LEVEL_BRICK_SIZE = 50
 
 LEFT_SCREEN_EDGE = screen_width / 5
 RIGHT_SCREEN_EDGE = screen_width * 4 / 5
@@ -20,6 +20,7 @@ PARTICLE_IMAGES_DIR = "dust_particles"
 COINS_DIR = "graphics/collect_new/coins"
 ENEMY_DIR = "graphics/enemy/run"
 
+
 # Levels data
 level_0 = {
     'terrain': 'lvl 0/level 0_terrain.csv',
@@ -30,6 +31,15 @@ level_0 = {
     'grass': 'lvl 0/level 0_grass.csv',
     'trees': 'lvl 0/level 0_trees.csv',
     'fg trees': 'lvl 0/level 0_fg trees.csv',
+}
+
+levels = [level_0, ]
+
+level_bricks = {
+    'level_0': {'pos': (120, 400), 'level': levels[0], 'activate': True, 'completed': False},
+    'level_1': {'pos': (220, 200), 'level': levels[0], 'activate': True, 'completed': False},
+    'level_2': {'pos': (320, 400), 'level': levels[0], 'activate': True, 'completed': False},
+    'level_3': {'pos': (420, 200), 'level': levels[0], 'activate': True, 'completed': False},
 }
 
 grass_tiles = {

@@ -110,6 +110,3 @@ class Player(pygame.sprite.Sprite):
         keys = pygame.key.get_pressed()
         if keys[pygame.K_UP]:
             self.direction.y = self.jump_speed
-
-
-
