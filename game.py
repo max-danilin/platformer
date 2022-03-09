@@ -15,7 +15,7 @@ player = Player((0, 0))
 overworld = Overworld(screen, player)
 running_level = False
 
-while True:
+while True:  # TODO Refactor code
     events = pygame.event.get()
     for event in events:
         if event.type == pygame.QUIT:
@@ -37,6 +37,9 @@ while True:
             running_level = False
             player.rect.center = brick_level.rect.center
             overworld.check_level_activation()
+        elif level.back_to_menu:  # TODO Save progress or drop it?
+            running_level = False
+            player.rect.center = brick_level.rect.center
 
     pygame.display.update()
     clock.tick(60)

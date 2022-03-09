@@ -37,6 +37,7 @@ class Level: # TODO Investigate lags
         self.gravity = 0.5
         self.level_width = 0
         self.completed = False
+        self.back_to_menu = False
 
         self.particles = pygame.sprite.Group()
 
@@ -198,6 +199,11 @@ class Level: # TODO Investigate lags
         if pygame.sprite.spritecollide(player, tiles, dokill=False):
             self.completed = True
 
+    def return_to_menu(self):
+        keys = pygame.key.get_pressed()
+        if keys[pygame.K_BACKSPACE]:
+            self.back_to_menu = True
+
     def collision_x_handler(self, player, tiles):
         """
         Method for handling collisions along X axis
@@ -346,6 +352,7 @@ class Level: # TODO Investigate lags
         self.apply_gravity(self.gravity)
         self.permit_jump(self.players.sprite)
         self.show_text(self.players.sprite.lives, self.players.sprite.coins, self.surface)
+        self.return_to_menu()
 
         # 2.
         self.players.update()

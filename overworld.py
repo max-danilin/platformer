@@ -1,11 +1,11 @@
 import pygame
 from brick_level import LevelBrick
-from player import Player
 from settings import *
 from collections import namedtuple
+# TODO Refactor the whole thing
 
 
-class Overworld:
+class Overworld:  # TODO Add images & background
     def __init__(self, surface, player):
         self.surface = surface
         self.player = player
@@ -13,6 +13,7 @@ class Overworld:
         self.players = pygame.sprite.GroupSingle()
         self.add_levels()
         self.points = [brick.rect.center for brick in self.brick_levels.sprites()]
+        self.na_points = [brick.rect.center for brick in self.brick_levels.sprites() if not brick.activate]
         self.create_player()
         self.proceed_to_level = None
 
@@ -32,7 +33,7 @@ class Overworld:
         y = (x - p0.x) / (p1.x - p0.x) * (p1.y - p0.y) + p0.y
         return int(y)
 
-    def player_constraints(self):
+    def player_constraints(self):  # TODO Restrict movement to available levels
         sprite = self.players.sprite
         if sprite.rect.x <= level_bricks['level_0']['pos'][0]:
             sprite.direction.x, sprite.direction.y = 0, 0
@@ -91,6 +92,7 @@ class Overworld:
 
     def draw_lines(self):
         pygame.draw.lines(self.surface, 'red', False, self.points, 10)
+        pygame.draw.lines(self.surface, 'black', False, self.na_points, 10)
 
     def run(self):
         self.brick_levels.update()
