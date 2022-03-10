@@ -1,5 +1,5 @@
 import pygame
-from tiles import Tile, StaticTile, EnemyTile, ObjectTile, CollisionTreeTile, CoinTile, TerrainTile
+from tiles import Tile, StaticTile, EnemyTile, ObjectTile, CollisionTreeTile, CoinTile, TerrainTile, WideTile
 from settings import *
 from player import Player
 from particle import Particle
@@ -14,7 +14,7 @@ stream_handler = logging.StreamHandler()
 stream_handler.setFormatter(logging.Formatter('%(module)s - %(levelname)s - %(message)s'))
 log.addHandler(stream_handler)
 log.setLevel(logging.CRITICAL)  # DEBUG
-stream_handler.setLevel(logging.CRITICAL)  # INFO
+stream_handler.setLevel(logging.DEBUG)  # INFO
 
 
 class Level: # TODO Investigate lags
@@ -49,6 +49,7 @@ class Level: # TODO Investigate lags
         self.objects_tiles = pygame.sprite.Group()
         self.constrains = pygame.sprite.Group()
         self.level_end = pygame.sprite.Group()
+        self.tree_obs = pygame.sprite.Group()
 
         self.players = pygame.sprite.GroupSingle()
 
@@ -110,6 +111,9 @@ class Level: # TODO Investigate lags
                         img = pygame.image.load(fg_trees[int(item)]).convert_alpha()
                         sprite = CollisionTreeTile(tile_size, (x, y), img)
                         self.background_tiles.add(sprite)
+                    if type == "tree obstacle":
+                        sprite = Tile(tile_size+20, (x, y))
+                        self.tree_obs.add(sprite)
                     if type == 'coins':
                         img = pygame.image.load(coin_tiles[int(item)]).convert_alpha()
                         if item == '0':
@@ -179,18 +183,41 @@ class Level: # TODO Investigate lags
             pygame.quit()
             sys.exit()
 
+    def tree_collision(self, player, trees):
+        saving_position = player.rect.y
+        collided_y = False
+        player.rect.y = player.exact_y
+        collision = pygame.sprite.spritecollide(player, trees, dokill=False)
+        if len(collision) == 2:
+            temp = sorted(collision, key=lambda item: item.rect.x)
+            collision = []
+            collision.append(WideTile(tile_size, temp[0].rect.topleft))
+        for tree in collision:
+            #print(f"Right: {player.rect.right}, {tree.rect.right}, left: {player.rect.left}, {tree.rect.left}, direction: {player.direction.y}")
+            if player.rect.right < tree.rect.right and player.rect.left > tree.rect.left and player.direction.y > 0:
+                collided_y = True
+                player.rect.bottom = tree.rect.top
+                player.direction.y = 0
+                self.on_ground = True
+        player.rect.y = saving_position if not collided_y else player.rect.y
+
     def objects_collision(self, player, objects):
         for object in pygame.sprite.spritecollide(player, objects, dokill=True):
             player.coins += object.value
             if object.hp_recovery:
                 player.lives += 1
 
-    def enemy_collision(self, player, enemies):
-        if pygame.sprite.spritecollide(player, enemies, dokill=False):
-            now = pygame.time.get_ticks()
-            if now - player.last_hit >= AFTER_DAMAGE_INVUL:
-                player.last_hit = now
-                player.lives -= 1
+    def enemy_collision(self, player, enemies):  # TODO Add particles
+        enemy = pygame.sprite.spritecollide(player, enemies, dokill=False)
+        if enemy:
+            if player.direction.y > 0 and player.rect.bottom - enemy.rect.top < tile_size / 3:
+                enemies.remove(enemy)
+                player.direction.y = player.jump_speed
+            else:
+                now = pygame.time.get_ticks()
+                if now - player.last_hit >= AFTER_DAMAGE_INVUL:
+                    player.last_hit = now
+                    player.lives -= 1
 
     def enemy_constrains(self, enemy, tiles):
         if pygame.sprite.spritecollide(enemy, tiles, dokill=False):
@@ -377,11 +404,13 @@ class Level: # TODO Investigate lags
         for tile in self.all_tiles:
             tile.update(self.world_shift)
         self.constrains.update(self.world_shift)
+        self.tree_obs.update(self.world_shift)
         self.level_end.update(self.world_shift)
 
         # 3.
         self.collision_x_handler(self.players.sprite, self.terrain_tiles)
         self.collision_y_handler(self.players.sprite, self.terrain_tiles)
+        self.tree_collision(self.players.sprite, self.tree_obs)
         self.objects_collision(self.players.sprite, self.objects_tiles)
         self.enemy_collision(self.players.sprite, self.enemy_tiles)
         self.level_finish(self.players.sprite, self.level_end)

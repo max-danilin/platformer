@@ -31,6 +31,7 @@ level_0 = {
     'grass': 'lvl 0/level 0_grass.csv',
     'trees': 'lvl 0/level 0_trees.csv',
     'fg trees': 'lvl 0/level 0_fg trees.csv',
+    'tree obstacle': "lvl 0/level 0_tree obstacle.csv",
 }
 
 levels = [level_0, ]
