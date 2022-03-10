@@ -13,9 +13,10 @@ class Overworld:  # TODO Add images & background
         self.players = pygame.sprite.GroupSingle()
         self.add_levels()
         self.points = [brick.rect.center for brick in self.brick_levels.sprites()]
-        self.na_points = [brick.rect.center for brick in self.brick_levels.sprites() if not brick.activate]
+        self.ava_points = [brick.rect.center for brick in self.brick_levels.sprites() if brick.activate]
         self.create_player()
         self.proceed_to_level = None
+        self.last_avail = None
 
     def add_levels(self):
         level_bricks_list = []
@@ -23,6 +24,11 @@ class Overworld:  # TODO Add images & background
             level_bricks_list.append(LevelBrick(**level_bricks[level]))
         for level in level_bricks_list:
             self.brick_levels.add(level)
+
+    def get_last_avail(self):
+        avail_bricks = [brick for brick in self.brick_levels.sprites() if brick.activate]
+        avail_bricks = sorted(avail_bricks, key=lambda item: item.rect.x, reverse=True)
+        self.last_avail = avail_bricks[0]
 
     def create_player(self):
         self.player.rect.center = self.points[0]
@@ -33,8 +39,11 @@ class Overworld:  # TODO Add images & background
         y = (x - p0.x) / (p1.x - p0.x) * (p1.y - p0.y) + p0.y
         return int(y)
 
-    def player_constraints(self):  # TODO Restrict movement to available levels
+    def player_constraints(self):
         sprite = self.players.sprite
+        if sprite.rect.x >= self.last_avail.rect.x:
+            sprite.direction.x, sprite.direction.y = 0, 0
+            sprite.rect.x = self.last_avail.rect.x
         if sprite.rect.x <= level_bricks['level_0']['pos'][0]:
             sprite.direction.x, sprite.direction.y = 0, 0
             sprite.rect.x = level_bricks['level_0']['pos'][0]
@@ -91,10 +100,11 @@ class Overworld:  # TODO Add images & background
                     brick.activate = True
 
     def draw_lines(self):
-        pygame.draw.lines(self.surface, 'red', False, self.points, 10)
-        pygame.draw.lines(self.surface, 'black', False, self.na_points, 10)
+        pygame.draw.lines(self.surface, 'black', False, self.points, 10)
+        pygame.draw.lines(self.surface, 'red', False, self.ava_points, 10)
 
     def run(self):
+        self.get_last_avail()
         self.brick_levels.update()
         self.player_constraints()
         self.players.update()

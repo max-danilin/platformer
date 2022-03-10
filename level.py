@@ -38,6 +38,8 @@ class Level: # TODO Investigate lags
         self.level_width = 0
         self.completed = False
         self.back_to_menu = False
+        self.postponed = False
+        self.pps = None
 
         self.particles = pygame.sprite.Group()
 
@@ -199,10 +201,25 @@ class Level: # TODO Investigate lags
         if pygame.sprite.spritecollide(player, tiles, dokill=False):
             self.completed = True
 
-    def return_to_menu(self):
+    def save_player(self, player):
+        rect = player.rect.x, player.rect.y
+        direction = player.direction.x, player.direction.y
+        speed = player.speed.x, player.speed.y
+        self.pps = rect, direction, speed
+
+    def return_to_menu(self, player):
         keys = pygame.key.get_pressed()
         if keys[pygame.K_BACKSPACE]:
             self.back_to_menu = True
+            self.postponed = True
+            self.save_player(player)
+        else:
+            self.back_to_menu = False
+
+    def restore_player(self, player):
+        if self.postponed:
+            (player.rect.x, player.rect.y), (player.direction.x, player.direction.y), (player.speed.x, player.speed.y) = self.pps
+            self.postponed = False
 
     def collision_x_handler(self, player, tiles):
         """
@@ -345,6 +362,7 @@ class Level: # TODO Investigate lags
         :return:
         """
 
+        self.restore_player(self.players.sprite)
         self.sky.draw(self.surface)
         self.clouds.draw(self.surface, self.world_shift)
         self.water.draw(self.surface, self.world_shift)
@@ -352,7 +370,7 @@ class Level: # TODO Investigate lags
         self.apply_gravity(self.gravity)
         self.permit_jump(self.players.sprite)
         self.show_text(self.players.sprite.lives, self.players.sprite.coins, self.surface)
-        self.return_to_menu()
+        self.return_to_menu(self.players.sprite)
 
         # 2.
         self.players.update()
