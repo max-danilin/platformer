@@ -28,7 +28,8 @@ class Tile(pygame.sprite.Sprite):
 
 class WideTile(pygame.sprite.Sprite):
     """
-    Class for creating sprites of tiles
+    Class for creating wide tile
+    Used only for combining 2 sprites for processing tree obstacles (for better collision)
     """
     def __init__(self, size, pos):
         """
@@ -125,16 +126,18 @@ class EnemyTile(AnimatedTile):
     def __init__(self, size, pos, img):
         super().__init__(size, pos, img)
         self.get_img(ENEMY_DIR)
+        self.flipped = [pygame.transform.flip(image, True, False) for image in self.images]
         self.image = self.images[0]
         self.animated = True
         self.enemy_speed = ENEMY_SPEED
-        self.flipped = True
+        self.flipped_flag = True
         x, y = pos
         self.rect = self.image.get_rect(bottomleft=(x, y + size))
 
     def update(self, x_shift):
         super().update(x_shift)
         self.rect.x += self.enemy_speed
-        if self.flipped:
-            self.image = pygame.transform.flip(self.image, True, False)
+        if self.flipped_flag:
+            self.image = self.flipped[int(self.frame_index)]
+            #self.image = pygame.transform.flip(self.image, True, False)
 

@@ -34,12 +34,16 @@ class Water:
         tile_x_amount = (level_width + 2 * screen_width) // water_tile_width
         self.water_sprites = pygame.sprite.Group()
         img = pygame.image.load('graphics/decoration/water/1.png').convert_alpha()
+        imgs = []
 
         for tile in range(tile_x_amount):
             x = tile * water_tile_width + water_start
             y = top
             sprite = AnimatedTile(192, (x, y), img)
-            sprite.get_img('graphics/decoration/water')
+            if not imgs:
+                sprite.get_img('graphics/decoration/water')
+                imgs = sprite.images
+            sprite.images = imgs
             sprite.animated = True
             self.water_sprites.add(sprite)
 

@@ -3,6 +3,7 @@ import os
 from maker import refactor_image
 from math import ceil
 from settings import *
+from utils import get_img, load_flipped
 
 # Create images if they haven't been created before
 img_dir = PLAYER_IMAGES_DIR
@@ -22,14 +23,17 @@ class Player(pygame.sprite.Sprite):
         :param pos: position of player's sprite
         """
         super().__init__()
-        self.states = {"idle": [], "jump": [], "run": []}
+        # Processing images
+        self.all_states = ('idle', "jump", "run")
         self.state = "idle"
         self.prev_state = ""
-        self.get_img(img_dir)
+        self.states = get_img(img_dir, self.all_states)
+        self.flipped = load_flipped(self.states)
 
         self.image = self.states[self.state][0]
         self.rect = self.image.get_rect(topleft=pos)
 
+        # Player's state in space
         self.exact_x, self.exact_y = float(self.rect.x), float(self.rect.y)
         self.direction = pygame.math.Vector2(0, 0)
         self.speed = pygame.math.Vector2(PLAYER_SPEED, 1)
@@ -37,27 +41,16 @@ class Player(pygame.sprite.Sprite):
         self.shift_speed = self.speed.x
         self.jump_speed = JUMP_SPEED
 
+        # Player internal parameters
         self.last_hit = pygame.time.get_ticks()
         self.lives = 40
         self.coins = 0
         self.blinks = 30
 
+        # Animation parameters
         self.frame_index = 0
         self.animation_speed = ANIMATION_SPEED
         self.moving_right = True
-
-    def get_img(self, dir):  # TODO maybe place this and particle's method in utils
-        """
-        Method for loading all images for all the states.
-        :param dir: image directory
-        :return:
-        """
-        for file in os.listdir(dir):
-            for state in self.states:
-                if file.lower().find(state) != -1:
-                    path = os.path.join(dir, file)
-                    img_load = pygame.image.load(path).convert_alpha()
-                    self.states[state].append(img_load)
 
     def get_inputs(self):
         """
@@ -98,7 +91,7 @@ class Player(pygame.sprite.Sprite):
             self.frame_index = 0
         self.image = self.states[self.state][int(self.frame_index)]
         if not self.moving_right:
-            self.image = pygame.transform.flip(self.image, True, False)
+            self.image = self.flipped[self.state][int(self.frame_index)]
 
         self.prev_state = self.state
         self.speed.x = self.shift_speed
@@ -106,8 +99,9 @@ class Player(pygame.sprite.Sprite):
         self.blinking()
         self.blinks = self.blinks + 1 if self.blinks < 30 else 30
 
-    def blinking(self):
+    def blinking(self):  # TODO Refactor to improve performance
         """
+        Function for blinking
         We have to revert set_alpha for every state
         :return:
         """

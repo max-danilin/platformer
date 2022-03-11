@@ -1,15 +1,14 @@
-with open('lvl 0/level 0_terrain.csv', 'r') as map_sample:
-    mapping = map_sample.read().splitlines()
-
+NUM_TILES_Y = 11
 tile_size = 64
 screen_width = 1200
-screen_height = len(mapping) * tile_size
+screen_height = NUM_TILES_Y * tile_size
 LEVEL_BRICK_SIZE = 50
 
 LEFT_SCREEN_EDGE = screen_width / 5
 RIGHT_SCREEN_EDGE = screen_width * 4 / 5
 
 AFTER_DAMAGE_INVUL = 1000
+TREE_OBSTACLE_ADDED_SPACE = 20
 PLAYER_SPEED = 5
 ENEMY_SPEED = 1
 JUMP_SPEED = -13
@@ -21,6 +20,8 @@ COINS_DIR = "graphics/collect_new/coins"
 ENEMY_DIR = "graphics/enemy/run"
 BLOCK_DIR = "new blocks"
 CHECK_DIR = "graphics/check.png"
+TERRAIN_TILESET_DIR = 'graphics/tiles_new/Tileset_mod.png'
+ENEMY_TILESET_DIR = 'graphics/enemy/setup_tile.png'
 
 
 # Levels data

@@ -41,11 +41,12 @@ while True:  # TODO Refactor code
             overworld.check_level_activation()
         elif level.back_to_menu:
             running_level = False
+            level.back_to_menu = False
             player.rect.center = brick_level.rect.center
 
     pygame.display.update()
-    clock.tick(60)
-    fps = clock.get_fps()
-    if 0 < fps < 55:
-        print(fps, perf_counter())
+    clock.tick(90)
+    # fps = clock.get_fps()
+    # if 0 < fps < 55:
+    #     print(fps, perf_counter())
 

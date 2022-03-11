@@ -26,6 +26,9 @@ class Level:
         """
         world_shift - allows us to move camera when player reaches certain lines on the screen
         on_ground - checks whether player is on the ground
+        back_to_menu - flag to check if game should get back to overworld
+        postponed - flag to pause level if backspace was hit
+        pps - player's position when level was postponed
         :param level_data: level map in txt format
         :param surface: surface to draw on
         """
@@ -33,17 +36,22 @@ class Level:
         self.surface = surface
         self.player = player
 
+        # Local level variables
         self.world_shift = 0
-        self.on_ground = False
         self.gravity = 0.5
         self.level_width = 0
+
+        # Flags
+        self.on_ground = False
         self.completed = False
         self.back_to_menu = False
         self.postponed = True
-        self.pps = None
 
+        # Particles
         self.particles = pygame.sprite.Group()
+        self.run_particles = pygame.sprite.GroupSingle()
 
+        # Tiles
         self.terrain_tiles = pygame.sprite.Group()
         self.background_tiles = pygame.sprite.Group()
         self.enemy_tiles = pygame.sprite.Group()
@@ -52,25 +60,66 @@ class Level:
         self.level_end = pygame.sprite.Group()
         self.tree_obs = pygame.sprite.Group()
 
+        # Player
         self.players = pygame.sprite.GroupSingle()
 
-        for key in self.level_data:
-            self.create_tile_group(key)
+        self.preloaded = Level.preload_images()
+        [self.create_tile_group(key) for key in self.level_data]
 
-        self.save_player(self.players.sprite)
+        # Save player's position
+        self. pps = self.save_player(self.players.sprite)
+
+        # Tile group for drawing
         self.all_tiles = [self.background_tiles, self.terrain_tiles, self.enemy_tiles, self.objects_tiles]
 
+        # Background
         self.sky = Sky(8)
         self.water = Water(screen_height - 40, self.level_width)
         self.clouds = Clouds(400, self.level_width, 20)
 
+        # Font
+        pygame.font.init()
+        self.font = pygame.font.SysFont('Arial', 30)
+
+    @staticmethod
+    def load_img(path_dict):
+        """
+        Loading images from their path's
+        :param path_dict: dictionary with paths to images
+        :return: dictionary with same key as path_dict and loaded image as value
+        """
+        img_dict = dict()
+        for index, value in path_dict.items():
+            img_dict[index] = pygame.image.load(value).convert_alpha()
+        return img_dict
+
+    @classmethod
+    def preload_images(cls):
+        """
+        Function for converting type of image into surface with image
+        :param type: type of image
+        :return:
+        """
+        preload_dict = {
+            'terrain': utils.import_tileset(TERRAIN_TILESET_DIR),
+            'enemies': utils.import_tileset(ENEMY_TILESET_DIR),
+            'constrains': utils.import_tileset(ENEMY_TILESET_DIR),
+            'grass': cls.load_img(grass_tiles),
+            'trees': cls.load_img(tree_tiles),
+            'fg trees': cls.load_img(fg_trees),
+            'coins': cls.load_img(coin_tiles)
+        }
+        return preload_dict
+
     def create_tile_group(self, type):
         """
-        Method for creating tile groups for terrain, trees, enemies ans so son
+        Method for creating tile groups for terrain, trees, objects, enemies ans so on
         :param type: type of tiles to create
         :return:
         """
         tilefile = utils.import_csv(self.level_data[type])
+        if type not in ('player', "tree obstacle"):
+            imgs = self.preloaded[type]
         row = 0
         for line in tilefile:
             if not self.level_width:
@@ -80,13 +129,11 @@ class Level:
                     x = tile_size * column
                     y = tile_size * row
                     if type == 'terrain':
-                        terrain_tile_list = utils.import_tileset('graphics/tiles_new/Tileset_mod.png')
-                        terrain_surf = terrain_tile_list[int(item)]
+                        terrain_surf = imgs[int(item)]
                         sprite = TerrainTile(tile_size, (x, y), terrain_surf)
                         self.terrain_tiles.add(sprite)
                     if type in ('enemies', 'constrains'):
-                        enemies_tile_list = utils.import_tileset('graphics/enemy/setup_tile.png')
-                        enemies_surf = enemies_tile_list[int(item)]
+                        enemies_surf = imgs[int(item)]
                         if item == '0':
                             sprite = EnemyTile(tile_size, (x, y), enemies_surf)
                             self.enemy_tiles.add(sprite)
@@ -94,7 +141,6 @@ class Level:
                             sprite = Tile(tile_size, (x, y))
                             self.constrains.add(sprite)
                     if type == 'player':
-                        player_tile_list = utils.import_tileset('graphics/setup_tiles.png')
                         if item == '0':
                             self.player.rect.topleft = (x, y)
                             self.players.add(self.player)
@@ -102,22 +148,22 @@ class Level:
                             sprite = Tile(tile_size, (x, y))
                             self.level_end.add(sprite)
                     if type == 'grass':
-                        img = pygame.image.load(grass_tiles[int(item)]).convert_alpha()
+                        img = imgs[int(item)]
                         sprite = StaticTile(tile_size, (x, y), img)
                         self.background_tiles.add(sprite)
                     if type == 'trees':
-                        img = pygame.image.load(tree_tiles[int(item)]).convert_alpha()
+                        img = imgs[int(item)]
                         sprite = StaticTile(tile_size, (x, y), img)
                         self.background_tiles.add(sprite)
                     if type == 'fg trees':
-                        img = pygame.image.load(fg_trees[int(item)]).convert_alpha()
+                        img = imgs[int(item)]
                         sprite = CollisionTreeTile(tile_size, (x, y), img)
                         self.background_tiles.add(sprite)
                     if type == "tree obstacle":
-                        sprite = Tile(tile_size + 20, (x, y))
+                        sprite = Tile(tile_size + TREE_OBSTACLE_ADDED_SPACE, (x, y))
                         self.tree_obs.add(sprite)
                     if type == 'coins':
-                        img = pygame.image.load(coin_tiles[int(item)]).convert_alpha()
+                        img = imgs[int(item)]
                         if item == '0':
                             sprite = CoinTile(tile_size, (x, y), img)
                         else:
@@ -159,15 +205,18 @@ class Level:
         """
         self.players.sprite.direction.y += gravity
 
-    def show_text(self, lives, coins, surface):
-        pygame.font.init()
-        font = pygame.font.SysFont('Arial', 30)
-        font_end = pygame.font.SysFont('Arial', 60)
+    @staticmethod
+    def show_text(font, lives, coins, surface):
+        """
+        Show lives, coins on the surface
+        :param font: type of font
+        :param lives: player lives
+        :param coins: player coins
+        :param surface: surface of our game
+        :return:
+        """
         surf_lives = font.render(f"Player lives = {lives}", True, 'red')
         surf_coins = font.render(f"Player coins = {coins}", True, 'red')
-        if self.completed:
-            surf_finish = font_end.render(f"Level completed!", True, 'red')
-            surface.blit(surf_finish, (300, 300))
         surface.blit(surf_lives, (30, 30))
         surface.blit(surf_coins, (300, 30))
 
@@ -180,21 +229,40 @@ class Level:
         if self.on_ground:
             player.jump()
 
-    def check_defeat(self, player):
+    @staticmethod
+    def check_defeat(player):
+        """
+        Checks if player has fallen or has no lives left
+        :param player: player object
+        :return:
+        """
         if player.rect.y > screen_height or player.lives <= 0:
             pygame.quit()
             sys.exit()
 
     def tree_collision(self, player, trees):
+        """
+        Checks collision with invisible tiles inside fg trees (referred as fg tiles further on). Works alike
+        collision_y_handler aside of few features.
+        First, we process collision if it happens from above with player's direction y > 0 and only in boundaries of
+        collided tree object
+        Second, if we have collision with 2 fg tiles simultaneously, then they are placed side by side and we group
+        them to allow for better collision processing.
+        :param player: player's object
+        :param trees: invisible tiles with collision inside fg trees
+        :return:
+        """
+        # Usual collision variables, seek reference within collision_handlers
         saving_position = player.rect.y
         collided_y = False
         player.rect.y = player.exact_y
         collision_tolerance = abs(player.direction.y) + 1
+
         collision = pygame.sprite.spritecollide(player, trees, dokill=False)
+        # Grouping 2 tiles into WideTile
         if len(collision) == 2:
             temp = sorted(collision, key=lambda item: item.rect.x)
-            collision = []
-            collision.append(WideTile(tile_size, temp[0].rect.topleft))
+            collision = [WideTile(tile_size, temp[0].rect.topleft)]
         for tree in collision:
             log.debug(f"Right: {player.rect.right}, {tree.rect.right}, left: {player.rect.left}, {tree.rect.left}, "
                       f"y: {player.rect.bottom}, {tree.rect.top}, direction: {player.direction.y}")
@@ -206,19 +274,42 @@ class Level:
                 self.on_ground = True
         player.rect.y = saving_position if not collided_y else player.rect.y
 
-    def objects_collision(self, player, objects):
+    @staticmethod
+    def objects_collision(player, objects):
+        """
+        Process collision with objects, destroy object upon collision, add coins or health to player
+        :param player: player's object
+        :param objects: objects to collide with
+        :return:
+        """
         for object in pygame.sprite.spritecollide(player, objects, dokill=True):
             player.coins += object.value
             if object.hp_recovery:
                 player.lives += 1
 
+    def add_explosion_particles(self, pos):
+        """
+        Add explosion particle upon enemy destruction
+        :param pos:
+        :return:
+        """
+        particle_offset = pygame.math.Vector2(20, 50)
+        self.particles.add(Particle(pos - particle_offset, 'explosion'))
+
     def enemy_collision(self, player, enemies):
+        """
+        Method for processing enemy collision. If player hit enemy from above, then enemy is destoyed, and player
+        jumps off the enemy. Otherwise player loose 1 life and becomes temporary invulnerable and
+        starts blinking for this period of time. Player.blinks set to 0 starts player.blinking.
+        :param player: player's object
+        :param enemies: enemy tiles
+        :return:
+        """
+        collision_tolerance = abs(player.direction.y) + 1
         collision = pygame.sprite.spritecollide(player, enemies, dokill=False)
         for enemy in collision:
-            if player.direction.y > 0 and player.rect.bottom - enemy.rect.top < tile_size / 3:
-                particle_offset = pygame.math.Vector2(20, 50)
-                expl_particle = Particle(enemy.rect.topleft - particle_offset, 'explosion')
-                self.particles.add(expl_particle)
+            if player.direction.y > 0 and player.rect.bottom - enemy.rect.top < collision_tolerance:
+                self.add_explosion_particles(enemy.rect.topleft)
                 enemies.remove(enemy)
                 player.direction.y = player.jump_speed
             else:
@@ -228,31 +319,58 @@ class Level:
                     player.lives -= 1
                     player.blinks = 0
 
-    def enemy_constrains(self, enemy, tiles):
+    @staticmethod
+    def enemy_constrains(enemy, tiles):
+        """
+        Checks if enemy collided with invisible constraints, turns enemy if so.
+        :param enemy: enemy object
+        :param tiles: invisible constraints for enemies
+        :return:
+        """
         if pygame.sprite.spritecollide(enemy, tiles, dokill=False):
             enemy.enemy_speed *= -1
-            enemy.flipped = not enemy.flipped
+            enemy.flipped_flag = not enemy.flipped_flag
 
     def level_finish(self, player, tiles):
+        """
+        Checks if player collided with level finish tiles
+        :param player:
+        :param tiles: invisible tiles, marking level's end
+        :return:
+        """
         if pygame.sprite.spritecollide(player, tiles, dokill=False):
             self.completed = True
 
-    def save_player(self, player):
+    @staticmethod
+    def save_player(player):
+        """
+        Method for saving player's parameters when the level is created and if it is paused
+        :param player:
+        :return: coordinates, direction and speed in tuples
+        """
         rect = player.rect.x, player.rect.y
         direction = player.direction.x, player.direction.y
         speed = player.speed.x, player.speed.y
-        self.pps = rect, direction, speed
+        return rect, direction, speed
 
     def return_to_menu(self, player):
+        """
+        Checks if backspace was hit, then sets flags and saves player
+        :param player:
+        :return:
+        """
         keys = pygame.key.get_pressed()
         if keys[pygame.K_BACKSPACE]:
             self.back_to_menu = True
             self.postponed = True
-            self.save_player(player)
-        else:
-            self.back_to_menu = False
+            self.pps = self.save_player(player)
 
     def restore_player(self, player):
+        """
+        Restores player parameters if level is resumed.
+        :param player:
+        :return:
+        """
         if self.postponed:
             (player.rect.x, player.rect.y), (player.direction.x, player.direction.y), (
                 player.speed.x, player.speed.y) = self.pps
@@ -361,31 +479,34 @@ class Level:
                 run_particle = Particle(player.rect.bottomleft - particle_offset, 'run')
             else:
                 run_particle = Particle(player.rect.bottomright - particle_offset, 'run', flipped=True)
-            self.particles.add(run_particle)
+            self.run_particles.add(run_particle)
             log.debug(f"Run particle created {run_particle.rect.x}, {run_particle.rect.y}")
 
-    def particle_draw(self, player, particles):
+    def particle_draw(self, player, particles, run_particles):
         """
         Method for drawing particles. Run particle should be removed as soon
         as player stops running, jump and landing particles should finish
         their full animations. Offsets are hardcoded for particular particles.
+        :param run_particles: run particles separately to make calculations faster
         :param player: player's sprite
         :param particles: group of particles to draw
         :return:
         """
-        for sprite in particles.sprites():
-            if sprite.state == "run":
-                if player.state != 'run':
-                    particles.remove(sprite)
+        sprite = run_particles.sprite
+        if sprite:
+            if player.state != 'run':
+                run_particles.remove(sprite)
+            else:
+                if player.moving_right:
+                    sprite.rect.x, sprite.rect.y = player.rect.x - 10, player.rect.bottom - 10
+                    sprite.flipped_flag = False
                 else:
-                    if player.moving_right:
-                        sprite.rect.x, sprite.rect.y = player.rect.x - 10, player.rect.bottom - 10
-                        sprite.flipped = False
-                    else:
-                        sprite.rect.x, sprite.rect.y = player.rect.right - 5, player.rect.bottom - 10
-                        sprite.flipped = True
+                    sprite.rect.x, sprite.rect.y = player.rect.right - 5, player.rect.bottom - 10
+                    sprite.flipped_flag = True
         particles.update(self.world_shift)
+        run_particles.update(self.world_shift)
         particles.draw(self.surface)
+        run_particles.draw(self.surface)
 
     def run(self):
         """
@@ -399,15 +520,15 @@ class Level:
         :return:
         """
 
-        self.restore_player(self.players.sprite)
         self.sky.draw(self.surface)
         self.clouds.draw(self.surface, self.world_shift)
         self.water.draw(self.surface, self.world_shift)
 
         # 1.
+        self.restore_player(self.players.sprite)
         self.apply_gravity(self.gravity)
         self.permit_jump(self.players.sprite)
-        self.show_text(self.players.sprite.lives, self.players.sprite.coins, self.surface)
+        self.show_text(self.font, self.players.sprite.lives, self.players.sprite.coins, self.surface)
         self.return_to_menu(self.players.sprite)
 
         # 2.
@@ -433,10 +554,10 @@ class Level:
         self.check_defeat(self.players.sprite)
         self.check_state(self.players.sprite)
         self.particle_create(self.players.sprite)
-        self.particle_draw(self.players.sprite, self.particles)
         log.info("-------------")
 
         # 5.
         for tile in self.all_tiles:
             tile.draw(self.surface)
+        self.particle_draw(self.players.sprite, self.particles, self.run_particles)
         self.players.draw(self.surface)

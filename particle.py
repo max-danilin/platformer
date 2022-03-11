@@ -1,6 +1,6 @@
 import pygame
-import os
 from settings import *
+from utils import get_img, load_flipped
 
 
 class Particle(pygame.sprite.Sprite):
@@ -18,28 +18,15 @@ class Particle(pygame.sprite.Sprite):
         self.states = {"land": [], "jump": [], "run": [], "explosion": []}
         self.state = state
         self.prev_state = ""
-        self.get_img(PARTICLE_IMAGES_DIR)
+        self.states = get_img(PARTICLE_IMAGES_DIR, self.states)
+        self.flipped = load_flipped(self.states)
 
         self.image = self.states[self.state][0]
         self.rect = self.image.get_rect(topleft=pos)
-        self.flipped = flipped
+        self.flipped_flag = flipped
 
         self.frame_index = 0
         self.animation_speed = ANIMATION_SPEED
-
-    def get_img(self, img_dir):
-        """
-        Method for loading all images for all the states.
-        :param img_dir: image directory
-        :return:
-        """
-        for state in self.states:
-            state_path = os.path.join(img_dir, state)
-            for file in os.listdir(state_path):
-                if file.lower().find(state) != -1:
-                    path = os.path.join(state_path, file)
-                    img_load = pygame.image.load(path).convert_alpha()
-                    self.states[state].append(img_load)
 
     def update(self, x_shift):
         """
@@ -60,8 +47,8 @@ class Particle(pygame.sprite.Sprite):
             self.frame_index = 0
         self.image = self.states[self.state][int(self.frame_index)]
 
-        if self.flipped:
-            self.image = pygame.transform.flip(self.image, True, False)
+        if self.flipped_flag:
+            self.image = self.flipped[self.state][int(self.frame_index)]
         self.prev_state = self.state
 
         if self.state != "run":
