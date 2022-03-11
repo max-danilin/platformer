@@ -1,5 +1,5 @@
 import pygame
-from tiles import Tile, StaticTile, EnemyTile, ObjectTile, CollisionTreeTile, CoinTile, TerrainTile, WideTile
+from tiles import Tile, StaticTile, EnemyTile, ObjectTile, CoinTile, TerrainTile, WideTile
 from settings import *
 from player import Player
 from particle import Particle
@@ -157,7 +157,7 @@ class Level:
                         self.background_tiles.add(sprite)
                     if type == 'fg trees':
                         img = imgs[int(item)]
-                        sprite = CollisionTreeTile(tile_size, (x, y), img)
+                        sprite = StaticTile(tile_size, (x, y), img)
                         self.background_tiles.add(sprite)
                     if type == "tree obstacle":
                         sprite = Tile(tile_size + TREE_OBSTACLE_ADDED_SPACE, (x, y))

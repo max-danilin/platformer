@@ -1,6 +1,16 @@
 import pygame
 from settings import *
-import os
+from utils import get_tile_img
+
+
+def get_images():
+    """
+    Function to load animated images once for every tile
+    :return:
+    """
+    coin_tile_images = get_tile_img(COINS_DIR)
+    enemy_tile_images = get_tile_img(ENEMY_DIR)
+    return coin_tile_images, enemy_tile_images
 
 
 class Tile(pygame.sprite.Sprite):
@@ -51,12 +61,18 @@ class WideTile(pygame.sprite.Sprite):
 
 
 class TerrainTile(Tile):
+    """
+    Class for terrain tiles with image
+    """
     def __init__(self, size, pos, img):
         super().__init__(size, pos)
         self.image = img
 
 
 class StaticTile(Tile):
+    """
+    Class for static tiles with repositioning
+    """
     def __init__(self, size, pos, img):
         super().__init__(size, pos)
         self.image = img
@@ -64,30 +80,33 @@ class StaticTile(Tile):
         self.rect = self.image.get_rect(bottomleft=(x, y+size))
 
 
-class CollisionTreeTile(StaticTile):
+class ObjectTile(StaticTile):
+    """
+    Class for object tiles
+    """
     def __init__(self, size, pos, img):
         super().__init__(size, pos, img)
 
+        self.value = 0
+        self.hp_recovery = False
+
+        x, y = pos
+        self.rect = self.image.get_rect(bottomleft=(x+15, y+size))
+
 
 class AnimatedTile(Tile):
+    """
+    Class for animated tiles
+    """
     def __init__(self, size, pos, img):
         super().__init__(size, pos)
         self.image = img
         self.images = []
+
+        # Animation parameters
         self.animated = False
         self.frame_index = 0
         self.animation_speed = ANIMATION_SPEED
-
-    def get_img(self, img_dir):
-        """
-        Method for loading all images for all the states.
-        :param img_dir: image directory
-        :return:
-        """
-        for file in os.listdir(img_dir):
-            path = os.path.join(img_dir, file)
-            img_load = pygame.image.load(path).convert_alpha()
-            self.images.append(img_load)
 
     def animate(self):
         self.frame_index += self.animation_speed
@@ -101,36 +120,36 @@ class AnimatedTile(Tile):
             self.animate()
 
 
-class ObjectTile(AnimatedTile):
-    def __init__(self, size, pos, img):
-        super().__init__(size, pos, img)
-        self.value = 0
-        self.hp_recovery = False
-        x, y = pos
-        self.rect = self.image.get_rect(bottomleft=(x+15, y+size))
-
-
 class CoinTile(AnimatedTile):
+    """
+    Class for animated coin tiles
+    """
     def __init__(self, size, pos, img):
         super().__init__(size, pos, img)
-        self.get_img(COINS_DIR)
+        self.images = get_images()[0]
         self.image = self.images[0]
         self.animated = True
+
         self.value = 1
         self.hp_recovery = False
+
         x, y = pos
         self.rect = self.image.get_rect(bottomleft=(x+15, y+size))
 
 
 class EnemyTile(AnimatedTile):
+    """
+    Class for enemy tiles and animation
+    """
     def __init__(self, size, pos, img):
         super().__init__(size, pos, img)
-        self.get_img(ENEMY_DIR)
+        self.images = get_images()[1]
         self.flipped = [pygame.transform.flip(image, True, False) for image in self.images]
         self.image = self.images[0]
         self.animated = True
         self.enemy_speed = ENEMY_SPEED
         self.flipped_flag = True
+
         x, y = pos
         self.rect = self.image.get_rect(bottomleft=(x, y + size))
 
@@ -139,5 +158,5 @@ class EnemyTile(AnimatedTile):
         self.rect.x += self.enemy_speed
         if self.flipped_flag:
             self.image = self.flipped[int(self.frame_index)]
-            #self.image = pygame.transform.flip(self.image, True, False)
+
 

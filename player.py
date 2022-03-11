@@ -23,12 +23,14 @@ class Player(pygame.sprite.Sprite):
         :param pos: position of player's sprite
         """
         super().__init__()
+
         # Processing images
         self.all_states = ('idle', "jump", "run")
         self.state = "idle"
         self.prev_state = ""
         self.states = get_img(img_dir, self.all_states)
         self.flipped = load_flipped(self.states)
+        self.changed = False
 
         self.image = self.states[self.state][0]
         self.rect = self.image.get_rect(topleft=pos)
@@ -67,23 +69,16 @@ class Player(pygame.sprite.Sprite):
         else:
             self.direction.x = 0
 
-    def update(self):
+    def if_blinked(self):
+        if self.changed:
+            self.image.set_alpha(255)
+            self.changed = False
+
+    def animate(self):
         """
-        Method for updating player's position and animation.
-        First, we check inputs, then update positions and rounded up positions (we need them for
-        collision detection) and afterwards deal with animations. We cycle animations and restart them if player's
-        state has changed from previous frame. Also flip the image if player pressed movement button.
-        We save speed in order to implement camera movement aka level's world shift.
+        Function for animation
         :return:
         """
-
-        self.get_inputs()
-
-        self.exact_x = ceil(self.rect.x + self.direction.x * self.speed.x)
-        self.exact_y = ceil(self.rect.y + self.direction.y)
-        self.rect.x += self.direction.x * self.speed.x
-        self.rect.y += self.direction.y
-
         self.frame_index += self.animation_speed
         if self.state != self.prev_state:
             self.frame_index = 0
@@ -93,13 +88,35 @@ class Player(pygame.sprite.Sprite):
         if not self.moving_right:
             self.image = self.flipped[self.state][int(self.frame_index)]
 
+    def update(self):
+        """
+        Method for updating player's position and animation.
+        First, we check inputs, then process blinked images, then update positions and rounded up positions
+        (we need them for collision detection) and afterwards deal with animations. We cycle animations and
+        restart them if player's state has changed from previous frame. Also flip the image if player pressed
+        movement button.
+        We save speed in order to implement camera movement aka level's world shift.
+        :return:
+        """
+
+        self.get_inputs()
+
+        self.if_blinked()
+
+        self.exact_x = ceil(self.rect.x + self.direction.x * self.speed.x)
+        self.exact_y = ceil(self.rect.y + self.direction.y)
+        self.rect.x += self.direction.x * self.speed.x
+        self.rect.y += self.direction.y
+
+        self.animate()
+
         self.prev_state = self.state
         self.speed.x = self.shift_speed
 
         self.blinking()
         self.blinks = self.blinks + 1 if self.blinks < 30 else 30
 
-    def blinking(self):  # TODO Refactor to improve performance
+    def blinking(self):
         """
         Function for blinking
         We have to revert set_alpha for every state
@@ -108,10 +125,7 @@ class Player(pygame.sprite.Sprite):
         if self.blinks < 30:
             if not self.blinks % 2:
                 self.image.set_alpha(0)
-            else:
-                self.image.set_alpha(255)
-        else:
-            self.image.set_alpha(255)
+                self.changed = True
 
     def jump(self):
         """

@@ -3,10 +3,18 @@ from settings import *
 from tiles import AnimatedTile, TerrainTile
 from random import choice, randint
 import glob
+from utils import get_tile_img
 
 
 class Sky:
+    """
+    Class for creating background sky
+    """
     def __init__(self, horizon):
+        """
+        Initializing skies with 3 different images
+        :param horizon: line of horizon in rows from top
+        """
         self.top = pygame.image.load('graphics/decoration/sky/sky_top.png').convert()
         self.middle = pygame.image.load('graphics/decoration/sky/sky_middle.png').convert()
         self.bottom = pygame.image.load('graphics/decoration/sky/sky_bottom.png').convert()
@@ -17,7 +25,7 @@ class Sky:
         self.bottom = pygame.transform.scale(self.bottom, (screen_width, tile_size))
 
     def draw(self, surface):
-        for row in range(11):
+        for row in range(NUM_TILES_Y):
             y = row * tile_size
             if row < self.horizon:
                 surface.blit(self.top, (0, y))
@@ -28,10 +36,21 @@ class Sky:
 
 
 class Water:
+    """
+    Class for creating and blitting animated water tiles
+    """
     def __init__(self, top, level_width):
+        """
+        Water tiles, their amount, starting and ending points.
+        Creating all the tiles at once.
+        imgs - list to save tile images in order not to load them every time
+        :param top:
+        :param level_width:
+        """
         water_start = -screen_width
-        water_tile_width = 192
+        water_tile_width = WATER_TILE_WIDTH
         tile_x_amount = (level_width + 2 * screen_width) // water_tile_width
+
         self.water_sprites = pygame.sprite.Group()
         img = pygame.image.load('graphics/decoration/water/1.png').convert_alpha()
         imgs = []
@@ -39,9 +58,9 @@ class Water:
         for tile in range(tile_x_amount):
             x = tile * water_tile_width + water_start
             y = top
-            sprite = AnimatedTile(192, (x, y), img)
+            sprite = AnimatedTile(WATER_TILE_WIDTH, (x, y), img)
             if not imgs:
-                sprite.get_img('graphics/decoration/water')
+                sprite.images = get_tile_img('graphics/decoration/water')
                 imgs = sprite.images
             sprite.images = imgs
             sprite.animated = True
@@ -53,12 +72,24 @@ class Water:
 
 
 class Clouds:
+    """
+    Class for creating cloud tiles in random spots
+    """
     def __init__(self, horizon, level_width, cloud_number):
+        """
+        Creating random clouds in random spaces of the surface, limited by stated boundaries.
+        :param horizon: line of the horizon in pixels
+        :param level_width:
+        :param cloud_number: number of clouds to blit
+        """
         cloud_list = [pygame.image.load(cloud).convert_alpha() for cloud in glob.glob('graphics/decoration/clouds/*')]
+
+        # Boundaries
         min_x = -screen_width
         max_x = level_width + screen_width
         min_y = 0
         max_y = horizon
+
         self.cloud_sprites = pygame.sprite.Group()
 
         for _ in range(cloud_number):

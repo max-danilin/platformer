@@ -69,3 +69,17 @@ def load_flipped(states):
             flip = pygame.transform.flip(item, True, False)
             flipped[key].append(flip)
     return flipped
+
+
+def get_tile_img(img_dir):
+    """
+    Method for loading all images for given type of tile.
+    :param img_dir: image directory
+    :return: list of images from given directory
+    """
+    images = []
+    for file in os.listdir(img_dir):
+        path = os.path.join(img_dir, file)
+        img_load = pygame.image.load(path).convert_alpha()
+        images.append(img_load)
+    return images

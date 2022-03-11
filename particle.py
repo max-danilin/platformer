@@ -15,18 +15,34 @@ class Particle(pygame.sprite.Sprite):
         :param flipped: whether we should flip particle image
         """
         super().__init__()
+        # Images managing
         self.states = {"land": [], "jump": [], "run": [], "explosion": []}
         self.state = state
         self.prev_state = ""
         self.states = get_img(PARTICLE_IMAGES_DIR, self.states)
         self.flipped = load_flipped(self.states)
+        self.flipped_flag = flipped
 
         self.image = self.states[self.state][0]
         self.rect = self.image.get_rect(topleft=pos)
-        self.flipped_flag = flipped
 
+        # Animation parameters
         self.frame_index = 0
         self.animation_speed = ANIMATION_SPEED
+
+    def animate(self):
+        """
+        Function for animation
+        :return:
+        """
+        self.frame_index += self.animation_speed
+        if self.frame_index >= len(self.states[self.state]):
+            self.frame_index = 0
+            if self.state != 'run':
+                self.kill()
+        if self.state != self.prev_state:
+            self.frame_index = 0
+        self.image = self.states[self.state][int(self.frame_index)]
 
     def update(self, x_shift):
         """
@@ -38,14 +54,7 @@ class Particle(pygame.sprite.Sprite):
         :param x_shift: speed of camera movement
         :return:
         """
-        self.frame_index += self.animation_speed
-        if self.frame_index >= len(self.states[self.state]):
-            self.frame_index = 0
-            if self.state != 'run':
-                self.kill()
-        if self.state != self.prev_state:
-            self.frame_index = 0
-        self.image = self.states[self.state][int(self.frame_index)]
+        self.animate()
 
         if self.flipped_flag:
             self.image = self.flipped[self.state][int(self.frame_index)]
