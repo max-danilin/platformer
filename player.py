@@ -38,8 +38,9 @@ class Player(pygame.sprite.Sprite):
         self.jump_speed = JUMP_SPEED
 
         self.last_hit = pygame.time.get_ticks()
-        self.lives = 5
+        self.lives = 40
         self.coins = 0
+        self.blinks = 30
 
         self.frame_index = 0
         self.animation_speed = ANIMATION_SPEED
@@ -82,6 +83,7 @@ class Player(pygame.sprite.Sprite):
         We save speed in order to implement camera movement aka level's world shift.
         :return:
         """
+
         self.get_inputs()
 
         self.exact_x = ceil(self.rect.x + self.direction.x * self.speed.x)
@@ -95,12 +97,27 @@ class Player(pygame.sprite.Sprite):
         if self.frame_index >= len(self.states[self.state]):
             self.frame_index = 0
         self.image = self.states[self.state][int(self.frame_index)]
-
         if not self.moving_right:
             self.image = pygame.transform.flip(self.image, True, False)
 
         self.prev_state = self.state
         self.speed.x = self.shift_speed
+
+        self.blinking()
+        self.blinks = self.blinks + 1 if self.blinks < 30 else 30
+
+    def blinking(self):
+        """
+        We have to revert set_alpha for every state
+        :return:
+        """
+        if self.blinks < 30:
+            if not self.blinks % 2:
+                self.image.set_alpha(0)
+            else:
+                self.image.set_alpha(255)
+        else:
+            self.image.set_alpha(255)
 
     def jump(self):
         """

@@ -12,9 +12,9 @@ pygame.init()
 screen = pygame.display.set_mode((screen_width, screen_height))
 clock = pygame.time.Clock()
 player = Player((0, 0))
-overworld = Overworld(screen, player)
 running_level = False
-levels_dict = {level: Level(level_bricks[level]['level'], screen, player) for level in level_bricks}
+levels_dict = {level: Level(level_bricks[level]['level'], screen, player) for level in level_bricks}  # TODO Investigate
+overworld = Overworld(screen, player)
 
 while True:  # TODO Refactor code
     events = pygame.event.get()

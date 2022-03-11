@@ -15,7 +15,7 @@ class Particle(pygame.sprite.Sprite):
         :param flipped: whether we should flip particle image
         """
         super().__init__()
-        self.states = {"land": [], "jump": [], "run": []}
+        self.states = {"land": [], "jump": [], "run": [], "explosion": []}
         self.state = state
         self.prev_state = ""
         self.get_img(PARTICLE_IMAGES_DIR)

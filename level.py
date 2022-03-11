@@ -17,10 +17,11 @@ log.setLevel(logging.CRITICAL)  # DEBUG
 stream_handler.setLevel(logging.DEBUG)  # INFO
 
 
-class Level: # TODO Investigate lags
+class Level:
     """
     Class for creating, adjusting and processing level of the game.
     """
+
     def __init__(self, level_data, surface, player):
         """
         world_shift - allows us to move camera when player reaches certain lines on the screen
@@ -38,7 +39,7 @@ class Level: # TODO Investigate lags
         self.level_width = 0
         self.completed = False
         self.back_to_menu = False
-        self.postponed = False
+        self.postponed = True
         self.pps = None
 
         self.particles = pygame.sprite.Group()
@@ -56,6 +57,7 @@ class Level: # TODO Investigate lags
         for key in self.level_data:
             self.create_tile_group(key)
 
+        self.save_player(self.players.sprite)
         self.all_tiles = [self.background_tiles, self.terrain_tiles, self.enemy_tiles, self.objects_tiles]
 
         self.sky = Sky(8)
@@ -112,7 +114,7 @@ class Level: # TODO Investigate lags
                         sprite = CollisionTreeTile(tile_size, (x, y), img)
                         self.background_tiles.add(sprite)
                     if type == "tree obstacle":
-                        sprite = Tile(tile_size+20, (x, y))
+                        sprite = Tile(tile_size + 20, (x, y))
                         self.tree_obs.add(sprite)
                     if type == 'coins':
                         img = pygame.image.load(coin_tiles[int(item)]).convert_alpha()
@@ -187,14 +189,17 @@ class Level: # TODO Investigate lags
         saving_position = player.rect.y
         collided_y = False
         player.rect.y = player.exact_y
+        collision_tolerance = abs(player.direction.y) + 1
         collision = pygame.sprite.spritecollide(player, trees, dokill=False)
         if len(collision) == 2:
             temp = sorted(collision, key=lambda item: item.rect.x)
             collision = []
             collision.append(WideTile(tile_size, temp[0].rect.topleft))
         for tree in collision:
-            #print(f"Right: {player.rect.right}, {tree.rect.right}, left: {player.rect.left}, {tree.rect.left}, direction: {player.direction.y}")
-            if player.rect.right < tree.rect.right and player.rect.left > tree.rect.left and player.direction.y > 0:
+            log.debug(f"Right: {player.rect.right}, {tree.rect.right}, left: {player.rect.left}, {tree.rect.left}, "
+                      f"y: {player.rect.bottom}, {tree.rect.top}, direction: {player.direction.y}")
+            if player.rect.right < tree.rect.right and player.rect.left > tree.rect.left and player.direction.y > 0\
+                    and player.rect.bottom - tree.rect.top < collision_tolerance:
                 collided_y = True
                 player.rect.bottom = tree.rect.top
                 player.direction.y = 0
@@ -207,10 +212,13 @@ class Level: # TODO Investigate lags
             if object.hp_recovery:
                 player.lives += 1
 
-    def enemy_collision(self, player, enemies):  # TODO Add particles
-        enemy = pygame.sprite.spritecollide(player, enemies, dokill=False)
-        if enemy:
+    def enemy_collision(self, player, enemies):
+        collision = pygame.sprite.spritecollide(player, enemies, dokill=False)
+        for enemy in collision:
             if player.direction.y > 0 and player.rect.bottom - enemy.rect.top < tile_size / 3:
+                particle_offset = pygame.math.Vector2(20, 50)
+                expl_particle = Particle(enemy.rect.topleft - particle_offset, 'explosion')
+                self.particles.add(expl_particle)
                 enemies.remove(enemy)
                 player.direction.y = player.jump_speed
             else:
@@ -218,6 +226,7 @@ class Level: # TODO Investigate lags
                 if now - player.last_hit >= AFTER_DAMAGE_INVUL:
                     player.last_hit = now
                     player.lives -= 1
+                    player.blinks = 0
 
     def enemy_constrains(self, enemy, tiles):
         if pygame.sprite.spritecollide(enemy, tiles, dokill=False):
@@ -245,7 +254,8 @@ class Level: # TODO Investigate lags
 
     def restore_player(self, player):
         if self.postponed:
-            (player.rect.x, player.rect.y), (player.direction.x, player.direction.y), (player.speed.x, player.speed.y) = self.pps
+            (player.rect.x, player.rect.y), (player.direction.x, player.direction.y), (
+                player.speed.x, player.speed.y) = self.pps
             self.postponed = False
 
     def collision_x_handler(self, player, tiles):
@@ -393,6 +403,7 @@ class Level: # TODO Investigate lags
         self.sky.draw(self.surface)
         self.clouds.draw(self.surface, self.world_shift)
         self.water.draw(self.surface, self.world_shift)
+
         # 1.
         self.apply_gravity(self.gravity)
         self.permit_jump(self.players.sprite)
@@ -429,10 +440,3 @@ class Level: # TODO Investigate lags
         for tile in self.all_tiles:
             tile.draw(self.surface)
         self.players.draw(self.surface)
-
-
-
-
-
-
-

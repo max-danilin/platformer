@@ -19,6 +19,8 @@ PLAYER_IMAGES_DIR = "img_new"
 PARTICLE_IMAGES_DIR = "dust_particles"
 COINS_DIR = "graphics/collect_new/coins"
 ENEMY_DIR = "graphics/enemy/run"
+BLOCK_DIR = "new blocks"
+CHECK_DIR = "graphics/check.png"
 
 
 # Levels data
@@ -34,13 +36,13 @@ level_0 = {
     'tree obstacle': "lvl 0/level 0_tree obstacle.csv",
 }
 
-levels = [level_0, ]
+levels = [level_0, level_0, level_0, level_0, ]
 
 level_bricks = {
-    'level_0': {'name': 'level_0', 'pos': (120, 400), 'level': levels[0], 'activate': True, 'completed': False, 'for_activation': None},
-    'level_1': {'name': 'level_1', 'pos': (220, 200), 'level': levels[0], 'activate': True, 'completed': False, 'for_activation': None},
-    'level_2': {'name': 'level_2', 'pos': (320, 400), 'level': levels[0], 'activate': False, 'completed': False, 'for_activation': ('level_0', 'level_1')},
-    'level_3': {'name': 'level_3', 'pos': (420, 200), 'level': levels[0], 'activate': False, 'completed': False, 'for_activation': ('level_2',)},
+    'level_0': {'name': 'level_0', 'pos': (screen_width/12, screen_height/2), 'level': levels[0], 'activate': True, 'completed': False, 'for_activation': None},
+    'level_1': {'name': 'level_1', 'pos': (screen_width/12*3, screen_height/8), 'level': levels[1], 'activate': True, 'completed': False, 'for_activation': None},
+    'level_2': {'name': 'level_2', 'pos': (screen_width/12*5, screen_height/2), 'level': levels[2], 'activate': False, 'completed': False, 'for_activation': ('level_0', 'level_1')},
+    'level_3': {'name': 'level_3', 'pos': (screen_width/12*7, screen_height/8), 'level': levels[3], 'activate': False, 'completed': False, 'for_activation': ('level_2',)},
 }
 
 grass_tiles = {

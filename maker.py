@@ -4,9 +4,11 @@ import os
 from settings import *
 
 states = ('idle', 'jump', 'run')
-new_dir = PLAYER_IMAGES_DIR
+#new_dir = PLAYER_IMAGES_DIR
 #new_dir = "collect_new"
-files = glob.glob('img/*.png')
+new_dir = "new blocks"
+files = os.listdir("block levels")
+#files = glob.glob('img/*.png')
 #files = os.listdir('Collectable Object/')
 os.makedirs(new_dir, exist_ok=True)
 # 54*60
@@ -43,14 +45,14 @@ def refactor_tile_image(size_x, size_y):
     :return:
     """
     for file in files:
-        im = Image.open(os.path.join("Collectable Object", file))
+        im = Image.open(os.path.join("block levels", file))
         name = file[:-4] + "_mod.png"
         print(file, name)
         # im.getbbox()
         # im = im.crop(im.getbbox())
         im = im.resize((size_x, size_y))
-        path = os.path.join(new_dir, name)
-        im.save(path)
+        new_path = os.path.join(new_dir, name)
+        im.save(new_path)
 
 #refactor_tile_image(48, 48)
 
@@ -64,3 +66,5 @@ def refactor_tile_image(size_x, size_y):
 #     im = im.resize((24, 24))
 #     path = os.path.join(new_dir, name)
 #     im.save(path)
+
+#refactor_tile_image(192, 178)

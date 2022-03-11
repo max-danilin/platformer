@@ -50,16 +50,15 @@ class Water:
 
 class Clouds:
     def __init__(self, horizon, level_width, cloud_number):
-        cloud_list = glob.glob('graphics/decoration/clouds/*')
+        cloud_list = [pygame.image.load(cloud).convert_alpha() for cloud in glob.glob('graphics/decoration/clouds/*')]
         min_x = -screen_width
         max_x = level_width + screen_width
         min_y = 0
         max_y = horizon
         self.cloud_sprites = pygame.sprite.Group()
 
-        for cloud in range(cloud_number):
-            cloud = choice(cloud_list)
-            img = pygame.image.load(cloud).convert_alpha()
+        for _ in range(cloud_number):
+            img = choice(cloud_list)
             x = randint(min_x, max_x)
             y = randint(min_y, max_y)
             sprite = TerrainTile(0, (x, y), img)
