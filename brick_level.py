@@ -24,6 +24,7 @@ class LevelBrick(pygame.sprite.Sprite):
         self.completed = completed
         self.for_activation = for_activation
         self.name = name
+        self.created_level = False
 
         # Images
         _path = self.name + "_mod.png"

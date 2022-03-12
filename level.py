@@ -296,7 +296,7 @@ class Level:
         particle_offset = pygame.math.Vector2(20, 50)
         self.particles.add(Particle(pos - particle_offset, 'explosion'))
 
-    def enemy_collision(self, player, enemies):
+    def enemy_collision(self, player, enemies):  # TODO Change enemy hitbox
         """
         Method for processing enemy collision. If player hit enemy from above, then enemy is destoyed, and player
         jumps off the enemy. Otherwise player loose 1 life and becomes temporary invulnerable and

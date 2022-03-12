@@ -13,6 +13,7 @@ class Overworld:
         """
         points - central points of level bricks to draw routes
         ava_points - central points of available brick levels
+        compl_brick - level that player tries to access while it was completed
         :param surface:
         :param player:
         """
@@ -26,12 +27,16 @@ class Overworld:
         self.points = [brick.rect.center for brick in self.brick_levels.sprites()]
         self.ava_points = None
         self.ava_bricks = None
+        self.compl_brick = None
         self.create_player()
 
         self.proceed_to_level = None
         self.running = False
+        self.player_pos = self.points[0]
 
         self.sky = Sky(8)
+        pygame.font.init()
+        self.font = pygame.font.SysFont('Arial', 30)
 
     def add_levels(self):
         """
@@ -99,6 +104,16 @@ class Overworld:
         elif x in range(self.points[2][0], self.points[3][0]):
             player.rect.centery = self.line_equation(x, point(*self.points[2]), point(*self.points[3]))
 
+    def set_player(self, player):
+        """
+        Setting player in the overworld
+        :param player:
+        :return:
+        """
+        player.direction.x = 0
+        player.direction.y = 0
+        player.rect.center = self.player_pos
+
     @staticmethod
     def player_set_animation(player):
         """
@@ -128,14 +143,34 @@ class Overworld:
         keys = pygame.key.get_pressed()
         brick = self.check_position(self.players.sprite)
         if brick and keys[pygame.K_RETURN]:
-            self.proceed_to_level = brick
+            if brick.completed:
+                self.compl_brick = brick
+            else:
+                self.proceed_to_level = brick
+                self.player_pos = brick.rect.center
 
     def check_state(self):
+        """
+        Prepare overworld and player when overworld is started
+        :return:
+        """
         if not self.running:
             self.check_level_activation()
             self.check_bricks()
             self.check_points()
+            self.set_player(self.players.sprite)
             self.running = True
+            self.compl_brick = None
+
+    def completed_level(self, level):
+        """
+        Function for displaying message for completed level
+        :param level: level to mention in message
+        :return:
+        """
+        if level:
+            surf_completed = self.font.render(f"LeveL {level.name} was completed!", True, 'red')
+            self.surface.blit(surf_completed, (screen_width/2-40, screen_width/2-20))
 
     def check_level_activation(self):
         """
@@ -164,13 +199,14 @@ class Overworld:
         self.brick_levels.update()
 
         # Player interactions
-        self.player_constraints(self.players.sprite, self.ava_bricks)
         self.players.update()
         self.player_movement(self.players.sprite)
+        self.player_constraints(self.players.sprite, self.ava_bricks)
         self.player_set_animation(self.players.sprite)
         self.go_to_level()
-        self.draw_lines()
 
         # Drawing objects
+        self.draw_lines()
         self.brick_levels.draw(self.surface)
         self.players.draw(self.surface)
+        self.completed_level(self.compl_brick)
