@@ -47,6 +47,7 @@ class Level:
         self.completed = False
         self.back_to_menu = False
         self.postponed = True
+        self.lost = False
 
         # Particles
         self.particles = pygame.sprite.Group()
@@ -68,7 +69,7 @@ class Level:
         [self.create_tile_group(key) for key in self.level_data]
 
         # Save player's position
-        self. pps = self.save_player(self.players.sprite)
+        self.pps = self.save_player(self.players.sprite)
 
         # Tile group for drawing
         self.all_tiles = [self.background_tiles, self.terrain_tiles, self.enemy_tiles, self.objects_tiles]
@@ -230,16 +231,16 @@ class Level:
         if self.on_ground:
             player.jump()
 
-    @staticmethod
-    def check_defeat(player):
+    def check_defeat(self, player):
         """
         Checks if player has fallen or has no lives left
         :param player: player object
         :return:
         """
         if player.rect.y > screen_height or player.lives <= 0:
-            pygame.quit()
-            sys.exit()
+            self.lost = True
+            # pygame.quit()
+            # sys.exit()
 
     def tree_collision(self, player, trees):
         """
@@ -267,7 +268,7 @@ class Level:
         for tree in collision:
             log.debug(f"Right: {player.rect.right}, {tree.rect.right}, left: {player.rect.left}, {tree.rect.left}, "
                       f"y: {player.rect.bottom}, {tree.rect.top}, direction: {player.direction.y}")
-            if player.rect.right < tree.rect.right and player.rect.left > tree.rect.left and player.direction.y > 0\
+            if player.rect.right < tree.rect.right and player.rect.left > tree.rect.left and player.direction.y > 0 \
                     and player.rect.bottom - tree.rect.top < collision_tolerance:
                 collided_y = True
                 player.rect.bottom = tree.rect.top
@@ -297,7 +298,7 @@ class Level:
         particle_offset = pygame.math.Vector2(20, 50)
         self.particles.add(Particle(pos - particle_offset, 'explosion'))
 
-    def enemy_collision(self, player, enemies):  # TODO Change enemy hitbox
+    def enemy_collision(self, player, enemies):
         """
         Method for processing enemy collision. If player hit enemy from above, then enemy is destoyed, and player
         jumps off the enemy. Otherwise player loose 1 life and becomes temporary invulnerable and
@@ -308,17 +309,20 @@ class Level:
         """
         collision_tolerance = abs(player.direction.y) + 1
         collision = pygame.sprite.spritecollide(player, enemies, dokill=False)
-        for enemy in collision:
-            if player.direction.y > 0 and player.rect.bottom - enemy.rect.top < collision_tolerance:
-                self.add_explosion_particles(enemy.rect.topleft)
-                enemies.remove(enemy)
-                player.direction.y = player.jump_speed
-            else:
-                now = pygame.time.get_ticks()
-                if now - player.last_hit >= AFTER_DAMAGE_INVUL:
-                    player.last_hit = now
-                    player.lives -= 1
-                    player.blinks = 0
+        # for enemy in collision:
+        for enemy in enemies:
+            if player.rect.colliderect(enemy.collision_rect):
+                if player.direction.y > 0 and player.rect.bottom - enemy.collision_rect.top < collision_tolerance:
+                    self.add_explosion_particles(enemy.rect.topleft)
+                    enemies.remove(enemy)
+                    player.enemies_killed += 1
+                    player.direction.y = player.jump_speed
+                else:
+                    now = pygame.time.get_ticks()
+                    if now - player.last_hit >= AFTER_DAMAGE_INVUL:
+                        player.last_hit = now
+                        player.lives -= 1
+                        player.blinks = 0
 
     @staticmethod
     def enemy_constrains(enemy, tiles):
@@ -529,7 +533,7 @@ class Level:
         self.restore_player(self.players.sprite)
         self.apply_gravity(self.gravity)
         self.permit_jump(self.players.sprite)
-        #self.show_text(self.font, self.players.sprite.lives, self.players.sprite.coins, self.surface)
+        # self.show_text(self.font, self.players.sprite.lives, self.players.sprite.coins, self.surface)
         self.return_to_menu(self.players.sprite)
 
         # 2.

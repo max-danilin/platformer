@@ -4,6 +4,7 @@ screen_width = 1200
 screen_height = NUM_TILES_Y * tile_size
 LEVEL_BRICK_SIZE = 50
 WATER_TILE_WIDTH = 192
+ENEMY_COLLISION_OFFSET = 9
 
 LEFT_SCREEN_EDGE = screen_width / 5
 RIGHT_SCREEN_EDGE = screen_width * 4 / 5

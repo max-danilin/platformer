@@ -140,6 +140,7 @@ class CoinTile(AnimatedTile):
 class EnemyTile(AnimatedTile):
     """
     Class for enemy tiles and animation
+    We use a bit smaller rect for checking collisions to provide better visuals
     """
     def __init__(self, size, pos, img):
         super().__init__(size, pos, img)
@@ -152,10 +153,16 @@ class EnemyTile(AnimatedTile):
 
         x, y = pos
         self.rect = self.image.get_rect(bottomleft=(x, y + size))
+        self.collision_rect = pygame.Rect(
+            (self.rect.left+ENEMY_COLLISION_OFFSET, self.rect.top),
+            (self.rect.width-ENEMY_COLLISION_OFFSET*2, self.rect.height)
+        )
 
     def update(self, x_shift):
         super().update(x_shift)
         self.rect.x += self.enemy_speed
+        self.collision_rect.y = self.rect.y
+        self.collision_rect.x = self.rect.x + ENEMY_COLLISION_OFFSET
         if self.flipped_flag:
             self.image = self.flipped[int(self.frame_index)]
 

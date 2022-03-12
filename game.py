@@ -5,9 +5,10 @@ from level import Level
 from overworld import Overworld
 from player import Player
 from ui import UI
+from endgame import EndGame
 
 
-class Platformer:
+class Platformer:  # TODO Add highscores class
     """
     Main class for the game with main loop
     """
@@ -26,6 +27,7 @@ class Platformer:
         #self.levels_dict = {level: Level(level_bricks[level]['level'], self.screen, self.player) for level in level_bricks}
         self.overworld = Overworld(self.screen, self.player)
         self.ui = UI(self.screen, self.player)
+        self.endgame = EndGame(self.screen, self.player)
 
         self.running_level = False
 
@@ -52,16 +54,20 @@ class Platformer:
                     brick_level.created_level = True
                 self.overworld.running = False
                 level = self.levels_dict[brick_level.name]
-                level.run()
-                if level.completed:
-                    brick_level.completed = True
-                    brick_level.is_completed()
-                    self.running_level = False
-                    self.player.rect.center = brick_level.rect.center
-                elif level.back_to_menu:
-                    self.running_level = False
-                    level.back_to_menu = False
-                    self.player.rect.center = brick_level.rect.center
+                if level.lost:
+                    self.endgame.draw()
+                else:
+                    level.run()
+                    if level.completed:
+                        brick_level.completed = True
+                        brick_level.is_completed()
+                        self.running_level = False
+                        self.players.levels_completed += 1
+                        #self.player.rect.center = brick_level.rect.center
+                    elif level.back_to_menu:
+                        self.running_level = False
+                        level.back_to_menu = False
+                        #self.player.rect.center = brick_level.rect.center
 
             pygame.display.update()
             self.clock.tick(60)

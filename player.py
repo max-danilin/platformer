@@ -48,6 +48,8 @@ class Player(pygame.sprite.Sprite):
         self.max_lives = 5
         self.lives = 5
         self.coins = 0
+        self.levels_completed = 0
+        self.enemies_killed = 0
         self.blinks = 30
 
         # Animation parameters
