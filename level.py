@@ -83,6 +83,14 @@ class Level:
         pygame.font.init()
         self.font = pygame.font.SysFont('Arial', 30)
 
+        # Sound
+        self.coin_sound = pygame.mixer.Sound(COIN_SOUND_DIR)
+        self.coin_sound.set_volume(0.3)
+        self.stomp_sound = pygame.mixer.Sound(STOMP_SOUND_DIR)
+        self.stomp_sound.set_volume(0.8)
+        self.hit_sound = pygame.mixer.Sound(HIT_SOUND_DIR)
+        self.level_music = pygame.mixer.Sound(LEVEL_MUSIC_DIR)
+
     @staticmethod
     def load_img(path_dict):
         """
@@ -276,8 +284,7 @@ class Level:
                 self.on_ground = True
         player.rect.y = saving_position if not collided_y else player.rect.y
 
-    @staticmethod
-    def objects_collision(player, objects):
+    def objects_collision(self, player, objects):
         """
         Process collision with objects, destroy object upon collision, add coins or health to player
         :param player: player's object
@@ -286,6 +293,8 @@ class Level:
         """
         for object in pygame.sprite.spritecollide(player, objects, dokill=True):
             player.coins += object.value
+            if object.value:
+                self.coin_sound.play()
             if object.hp_recovery:
                 player.lives += 1
 
@@ -308,12 +317,11 @@ class Level:
         :return:
         """
         collision_tolerance = abs(player.direction.y) + 1
-        collision = pygame.sprite.spritecollide(player, enemies, dokill=False)
-        # for enemy in collision:
         for enemy in enemies:
             if player.rect.colliderect(enemy.collision_rect):
                 if player.direction.y > 0 and player.rect.bottom - enemy.collision_rect.top < collision_tolerance:
                     self.add_explosion_particles(enemy.rect.topleft)
+                    self.stomp_sound.play()
                     enemies.remove(enemy)
                     player.enemies_killed += 1
                     player.direction.y = player.jump_speed
@@ -321,6 +329,7 @@ class Level:
                     now = pygame.time.get_ticks()
                     if now - player.last_hit >= AFTER_DAMAGE_INVUL:
                         player.last_hit = now
+                        self.hit_sound.play()
                         player.lives -= 1
                         player.blinks = 0
 
@@ -513,6 +522,14 @@ class Level:
         particles.draw(self.surface)
         run_particles.draw(self.surface)
 
+    def start_music(self):
+        """
+        Starts background music
+        :return:
+        """
+        if self.postponed:
+            pygame.mixer.Channel(BACKGROUND_MUSIC_CHANNEL).play(self.level_music, loops=-1)
+
     def run(self):
         """
         Running level following these consecutive steps:
@@ -530,10 +547,10 @@ class Level:
         self.water.draw(self.surface, self.world_shift)
 
         # 1.
+        self.start_music()
         self.restore_player(self.players.sprite)
         self.apply_gravity(self.gravity)
         self.permit_jump(self.players.sprite)
-        # self.show_text(self.font, self.players.sprite.lives, self.players.sprite.coins, self.surface)
         self.return_to_menu(self.players.sprite)
 
         # 2.

@@ -20,23 +20,31 @@ class Overworld:
         self.surface = surface
         self.player = player
 
+        # Create overworld
         self.brick_levels = pygame.sprite.Group()
         self.players = pygame.sprite.GroupSingle()
         self.add_levels()
 
         self.points = [brick.rect.center for brick in self.brick_levels.sprites()]
+
+        # Flags and parameters
         self.ava_points = None
         self.ava_bricks = None
         self.compl_brick = None
-        self.create_player()
-
         self.proceed_to_level = None
         self.running = False
         self.player_pos = self.points[0]
 
+        self.create_player()
+
         self.sky = Sky(8)
+
+        # Font
         pygame.font.init()
         self.font = pygame.font.SysFont('Arial', 30)
+
+        # Music
+        self.overworld_music = pygame.mixer.Sound(OVERWORLD_MUSIC_DIR)
 
     def add_levels(self):
         """
@@ -155,6 +163,7 @@ class Overworld:
         :return:
         """
         if not self.running:
+            pygame.mixer.Channel(BACKGROUND_MUSIC_CHANNEL).play(self.overworld_music, loops=-1)
             self.check_level_activation()
             self.check_bricks()
             self.check_points()

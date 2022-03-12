@@ -52,6 +52,10 @@ class Player(pygame.sprite.Sprite):
         self.enemies_killed = 0
         self.blinks = 30
 
+        # Sound
+        self.jump_sound = pygame.mixer.Sound(JUMP_SOUND_DIR)
+        self.jump_sound.set_volume(0.1)
+
         # Animation parameters
         self.frame_index = 0
         self.animation_speed = ANIMATION_SPEED
@@ -138,3 +142,4 @@ class Player(pygame.sprite.Sprite):
         keys = pygame.key.get_pressed()
         if keys[pygame.K_UP]:
             self.direction.y = self.jump_speed
+            self.jump_sound.play()

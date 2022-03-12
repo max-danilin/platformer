@@ -15,6 +15,7 @@ PLAYER_SPEED = 5
 ENEMY_SPEED = 1
 JUMP_SPEED = -13
 ANIMATION_SPEED = 0.15
+BACKGROUND_MUSIC_CHANNEL = 0
 
 PLAYER_IMAGES_DIR = "img_new"
 PARTICLE_IMAGES_DIR = "dust_particles"
@@ -28,6 +29,12 @@ UI_COIN_DIR = "graphics/ui/coin.png"
 UI_HB_DIR = "graphics/ui/health_bar.png"
 UI_FONT_DIR = "graphics/ui/ARCADEPI.TTF"
 
+COIN_SOUND_DIR = "audio/effects/coin.wav"
+STOMP_SOUND_DIR = "audio/effects/stomp.wav"
+HIT_SOUND_DIR = "audio/effects/hit.wav"
+JUMP_SOUND_DIR = "audio/effects/jump.wav"
+LEVEL_MUSIC_DIR = "audio/level_music.wav"
+OVERWORLD_MUSIC_DIR = "audio/overworld_music.wav"
 
 # Levels data
 level_0 = {

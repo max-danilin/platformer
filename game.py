@@ -21,6 +21,7 @@ class Platformer:  # TODO Add highscores class
         """
         self.screen = pygame.display.set_mode((screen_width, screen_height))
         self.clock = pygame.time.Clock()
+        pygame.mixer.init()
 
         self.player = Player((0, 0))
         self.levels_dict = dict()
@@ -30,6 +31,7 @@ class Platformer:  # TODO Add highscores class
         self.endgame = EndGame(self.screen, self.player)
 
         self.running_level = False
+        pygame.mixer.Channel(BACKGROUND_MUSIC_CHANNEL).set_volume(0.05)
 
     def run(self):
         while True:
@@ -55,6 +57,7 @@ class Platformer:  # TODO Add highscores class
                 self.overworld.running = False
                 level = self.levels_dict[brick_level.name]
                 if level.lost:
+                    pygame.mixer.stop()
                     self.endgame.draw()
                 else:
                     level.run()
@@ -62,12 +65,10 @@ class Platformer:  # TODO Add highscores class
                         brick_level.completed = True
                         brick_level.is_completed()
                         self.running_level = False
-                        self.players.levels_completed += 1
-                        #self.player.rect.center = brick_level.rect.center
+                        self.player.levels_completed += 1
                     elif level.back_to_menu:
                         self.running_level = False
                         level.back_to_menu = False
-                        #self.player.rect.center = brick_level.rect.center
 
             pygame.display.update()
             self.clock.tick(60)
