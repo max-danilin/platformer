@@ -45,8 +45,8 @@ class Player(pygame.sprite.Sprite):
 
         # Player internal parameters
         self.last_hit = pygame.time.get_ticks()
-        self.max_lives = 5
-        self.lives = 5
+        self.max_lives = 40
+        self.lives = 40
         self.coins = 0
         self.levels_completed = 0
         self.enemies_killed = 0

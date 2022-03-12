@@ -35,6 +35,7 @@ HIT_SOUND_DIR = "audio/effects/hit.wav"
 JUMP_SOUND_DIR = "audio/effects/jump.wav"
 LEVEL_MUSIC_DIR = "audio/level_music.wav"
 OVERWORLD_MUSIC_DIR = "audio/overworld_music.wav"
+GAMEOVER_SOUND_DIR = "audio/GameOver.wav"
 
 # Levels data
 level_0 = {
@@ -54,15 +55,15 @@ levels = [level_0, level_0, level_0, level_0, ]
 level_bricks = {
     'level_0': {
         'name': 'level_0', 'pos': (screen_width/12, screen_height/2), 'level': levels[0], 'activate': True,
-        'completed': False, 'for_activation': None
+        'completed': True, 'for_activation': None
     },
     'level_1': {
         'name': 'level_1', 'pos': (screen_width/12*3, screen_height/8), 'level': levels[1], 'activate': True,
-        'completed': False, 'for_activation': None
+        'completed': True, 'for_activation': None
     },
     'level_2': {
         'name': 'level_2', 'pos': (screen_width/12*5, screen_height/2), 'level': levels[2], 'activate': False,
-        'completed': False, 'for_activation': ('level_0', 'level_1')
+        'completed': True, 'for_activation': ('level_0', 'level_1')
     },
     'level_3': {
         'name': 'level_3', 'pos': (screen_width/12*7, screen_height/8), 'level': levels[3], 'activate': False,

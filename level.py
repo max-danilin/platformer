@@ -312,11 +312,13 @@ class Level:
         Method for processing enemy collision. If player hit enemy from above, then enemy is destoyed, and player
         jumps off the enemy. Otherwise player loose 1 life and becomes temporary invulnerable and
         starts blinking for this period of time. Player.blinks set to 0 starts player.blinking.
+        killed - flag to let player destroy multiple enemies simultaneously
         :param player: player's object
         :param enemies: enemy tiles
         :return:
         """
         collision_tolerance = abs(player.direction.y) + 1
+        killed = False
         for enemy in enemies:
             if player.rect.colliderect(enemy.collision_rect):
                 if player.direction.y > 0 and player.rect.bottom - enemy.collision_rect.top < collision_tolerance:
@@ -324,7 +326,7 @@ class Level:
                     self.stomp_sound.play()
                     enemies.remove(enemy)
                     player.enemies_killed += 1
-                    player.direction.y = player.jump_speed
+                    killed = True
                 else:
                     now = pygame.time.get_ticks()
                     if now - player.last_hit >= AFTER_DAMAGE_INVUL:
@@ -332,6 +334,8 @@ class Level:
                         self.hit_sound.play()
                         player.lives -= 1
                         player.blinks = 0
+        if killed:
+            player.direction.y = player.jump_speed
 
     @staticmethod
     def enemy_constrains(enemy, tiles):

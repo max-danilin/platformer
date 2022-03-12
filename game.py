@@ -6,9 +6,11 @@ from overworld import Overworld
 from player import Player
 from ui import UI
 from endgame import EndGame
+from victory import Victory
+from highscore import HighScore
 
 
-class Platformer:  # TODO Add highscores class
+class Platformer:
     """
     Main class for the game with main loop
     """
@@ -29,15 +31,17 @@ class Platformer:  # TODO Add highscores class
         self.overworld = Overworld(self.screen, self.player)
         self.ui = UI(self.screen, self.player)
         self.endgame = EndGame(self.screen, self.player)
+        self.victory = Victory(self.screen)
+        self.highscore = HighScore(self.screen)
 
         self.running_level = False
         pygame.mixer.Channel(BACKGROUND_MUSIC_CHANNEL).set_volume(0.05)
 
-    def run(self):
+    def run(self):  # TODO Refactor this
         while True:
             events = pygame.event.get()
             for event in events:
-                if event.type == pygame.QUIT:
+                if event.type == pygame.QUIT or (event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE):
                     pygame.quit()
                     sys.exit()
 
@@ -47,7 +51,19 @@ class Platformer:  # TODO Add highscores class
                 self.overworld.proceed_to_level = None
                 self.running_level = True
             elif not self.overworld.proceed_to_level and not self.running_level:
-                self.overworld.run()
+                if self.overworld.victory:
+                    if self.victory.to_highscore:
+                        if not self.highscore.created:
+                            self.highscore.add(self.victory.name, self.player.coins, self.player.enemies_killed)
+                            self.highscore.load()
+                            self.highscore.created = True
+                        else:
+                            self.highscore.draw()
+                    else:
+                        self.victory.check_inputs(events)
+                        self.victory.draw()
+                else:
+                    self.overworld.run()
             else:
                 if not brick_level.created_level:
                     self.levels_dict[brick_level.name] = Level(
@@ -57,7 +73,7 @@ class Platformer:  # TODO Add highscores class
                 self.overworld.running = False
                 level = self.levels_dict[brick_level.name]
                 if level.lost:
-                    pygame.mixer.stop()
+                    pygame.mixer.Channel(BACKGROUND_MUSIC_CHANNEL).stop()
                     self.endgame.draw()
                 else:
                     level.run()
@@ -66,6 +82,7 @@ class Platformer:  # TODO Add highscores class
                         brick_level.is_completed()
                         self.running_level = False
                         self.player.levels_completed += 1
+                        self.overworld.check_victory()
                     elif level.back_to_menu:
                         self.running_level = False
                         level.back_to_menu = False

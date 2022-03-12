@@ -33,6 +33,7 @@ class Overworld:
         self.compl_brick = None
         self.proceed_to_level = None
         self.running = False
+        self.victory = False
         self.player_pos = self.points[0]
 
         self.create_player()
@@ -156,6 +157,9 @@ class Overworld:
             else:
                 self.proceed_to_level = brick
                 self.player_pos = brick.rect.center
+
+    def check_victory(self):
+        self.victory = all([level.completed for level in self.brick_levels.sprites()])
 
     def check_state(self):
         """
