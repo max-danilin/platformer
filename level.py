@@ -22,7 +22,7 @@ class Level:
     Class for creating, adjusting and processing level of the game.
     """
 
-    def __init__(self, level_data, surface, player):
+    def __init__(self, level_data, surface, player, ui):
         """
         world_shift - allows us to move camera when player reaches certain lines on the screen
         on_ground - checks whether player is on the ground
@@ -35,6 +35,7 @@ class Level:
         self.level_data = level_data
         self.surface = surface
         self.player = player
+        self.ui = ui
 
         # Local level variables
         self.world_shift = 0
@@ -528,7 +529,7 @@ class Level:
         self.restore_player(self.players.sprite)
         self.apply_gravity(self.gravity)
         self.permit_jump(self.players.sprite)
-        self.show_text(self.font, self.players.sprite.lives, self.players.sprite.coins, self.surface)
+        #self.show_text(self.font, self.players.sprite.lives, self.players.sprite.coins, self.surface)
         self.return_to_menu(self.players.sprite)
 
         # 2.
@@ -561,3 +562,4 @@ class Level:
             tile.draw(self.surface)
         self.particle_draw(self.players.sprite, self.particles, self.run_particles)
         self.players.draw(self.surface)
+        self.ui.draw()

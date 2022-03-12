@@ -4,6 +4,7 @@ from settings import *
 from level import Level
 from overworld import Overworld
 from player import Player
+from ui import UI
 
 
 class Platformer:
@@ -24,6 +25,7 @@ class Platformer:
         self.levels_dict = dict()
         #self.levels_dict = {level: Level(level_bricks[level]['level'], self.screen, self.player) for level in level_bricks}
         self.overworld = Overworld(self.screen, self.player)
+        self.ui = UI(self.screen, self.player)
 
         self.running_level = False
 
@@ -45,7 +47,7 @@ class Platformer:
             else:
                 if not brick_level.created_level:
                     self.levels_dict[brick_level.name] = Level(
-                        level_bricks[brick_level.name]['level'], self.screen, self.player
+                        level_bricks[brick_level.name]['level'], self.screen, self.player, self.ui
                     )
                     brick_level.created_level = True
                 self.overworld.running = False

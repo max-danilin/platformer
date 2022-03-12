@@ -23,6 +23,9 @@ BLOCK_DIR = "new blocks"
 CHECK_DIR = "graphics/check.png"
 TERRAIN_TILESET_DIR = 'graphics/tiles_new/Tileset_mod.png'
 ENEMY_TILESET_DIR = 'graphics/enemy/setup_tile.png'
+UI_COIN_DIR = "graphics/ui/coin.png"
+UI_HB_DIR = "graphics/ui/health_bar.png"
+UI_FONT_DIR = "graphics/ui/ARCADEPI.TTF"
 
 
 # Levels data
