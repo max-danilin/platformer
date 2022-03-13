@@ -1,6 +1,7 @@
 import pygame
 import os
 from settings import *
+from level import Level
 
 
 class LevelBrick(pygame.sprite.Sprite):
@@ -25,6 +26,8 @@ class LevelBrick(pygame.sprite.Sprite):
         self.for_activation = for_activation
         self.name = name
         self.created_level = False
+        self.associated_level = None
+        self.stop_level = False
 
         # Images
         _path = self.name + "_mod.png"
@@ -38,6 +41,23 @@ class LevelBrick(pygame.sprite.Sprite):
         self.is_activated()
 
         self.rect = self.image.get_rect(topleft=pos)
+
+    def create_level(self, surface, player, ui):
+        self.associated_level = Level(level_bricks[self.name]['level'], surface, player, ui)
+
+    def run_level(self, surface, player, ui):
+        if not self.created_level:
+            self.create_level(surface, player, ui)
+            self.created_level = True
+        self.associated_level.run()
+        if self.associated_level.completed:
+            self.completed = True
+            self.stop_level = True
+        elif self.associated_level.back_to_menu:
+            self.stop_level = True
+            self.associated_level.back_to_menu = False
+        else:
+            self.stop_level = False
 
     def is_completed(self):
         """

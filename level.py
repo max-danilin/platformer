@@ -1,12 +1,11 @@
 import pygame
 from tiles import Tile, StaticTile, EnemyTile, ObjectTile, CoinTile, TerrainTile, WideTile
 from settings import *
-from player import Player
 from particle import Particle
 import logging
 import utils
-import sys
 from decoration import Sky, Water, Clouds
+from endgame import EndGame
 
 log = logging.getLogger("platform")
 
@@ -36,6 +35,7 @@ class Level:
         self.surface = surface
         self.player = player
         self.ui = ui
+        self.endgame = EndGame(self.surface, self.player)
 
         # Local level variables
         self.world_shift = 0
@@ -47,7 +47,6 @@ class Level:
         self.completed = False
         self.back_to_menu = False
         self.postponed = True
-        self.lost = False
 
         # Particles
         self.particles = pygame.sprite.Group()
@@ -239,16 +238,23 @@ class Level:
         if self.on_ground:
             player.jump()
 
-    def check_defeat(self, player):
+    def goto_endscore(self):
+        """
+        Draws end scene
+        :return:
+        """
+        pygame.mixer.Channel(BACKGROUND_MUSIC_CHANNEL).stop()
+        self.endgame.draw()
+
+    @staticmethod
+    def check_defeat(player):
         """
         Checks if player has fallen or has no lives left
         :param player: player object
         :return:
         """
         if player.rect.y > screen_height or player.lives <= 0:
-            self.lost = True
-            # pygame.quit()
-            # sys.exit()
+            return True
 
     def tree_collision(self, player, trees):
         """
@@ -357,6 +363,7 @@ class Level:
         :return:
         """
         if pygame.sprite.spritecollide(player, tiles, dokill=False):
+            player.levels_completed += 1
             self.completed = True
 
     @staticmethod
@@ -545,46 +552,49 @@ class Level:
         5. Draw everything
         :return:
         """
+        if self.check_defeat(self.players.sprite):
+            self.goto_endscore()
+        else:
 
-        self.sky.draw(self.surface)
-        self.clouds.draw(self.surface, self.world_shift)
-        self.water.draw(self.surface, self.world_shift)
+            self.sky.draw(self.surface)
+            self.clouds.draw(self.surface, self.world_shift)
+            self.water.draw(self.surface, self.world_shift)
 
-        # 1.
-        self.start_music()
-        self.restore_player(self.players.sprite)
-        self.apply_gravity(self.gravity)
-        self.permit_jump(self.players.sprite)
-        self.return_to_menu(self.players.sprite)
+            # 1.
+            self.start_music()
+            self.restore_player(self.players.sprite)
+            self.apply_gravity(self.gravity)
+            self.permit_jump(self.players.sprite)
+            self.return_to_menu(self.players.sprite)
 
-        # 2.
-        self.players.update()
-        for tile in self.all_tiles:
-            tile.update(self.world_shift)
-        self.constrains.update(self.world_shift)
-        self.tree_obs.update(self.world_shift)
-        self.level_end.update(self.world_shift)
+            # 2.
+            self.players.update()
+            for tile in self.all_tiles:
+                tile.update(self.world_shift)
+            self.constrains.update(self.world_shift)
+            self.tree_obs.update(self.world_shift)
+            self.level_end.update(self.world_shift)
 
-        # 3.
-        self.collision_x_handler(self.players.sprite, self.terrain_tiles)
-        self.collision_y_handler(self.players.sprite, self.terrain_tiles)
-        self.tree_collision(self.players.sprite, self.tree_obs)
-        self.objects_collision(self.players.sprite, self.objects_tiles)
-        self.enemy_collision(self.players.sprite, self.enemy_tiles)
-        self.level_finish(self.players.sprite, self.level_end)
-        for enemy in self.enemy_tiles.sprites():
-            self.enemy_constrains(enemy, self.constrains)
-        self.scroll_x(self.players.sprite)
+            # 3.
+            self.collision_x_handler(self.players.sprite, self.terrain_tiles)
+            self.collision_y_handler(self.players.sprite, self.terrain_tiles)
+            self.tree_collision(self.players.sprite, self.tree_obs)
+            self.objects_collision(self.players.sprite, self.objects_tiles)
+            self.enemy_collision(self.players.sprite, self.enemy_tiles)
+            self.level_finish(self.players.sprite, self.level_end)
+            for enemy in self.enemy_tiles.sprites():
+                self.enemy_constrains(enemy, self.constrains)
+            self.scroll_x(self.players.sprite)
 
-        # 4.
-        self.check_defeat(self.players.sprite)
-        self.check_state(self.players.sprite)
-        self.particle_create(self.players.sprite)
-        log.info("-------------")
+            # 4.
+            self.check_defeat(self.players.sprite)
+            self.check_state(self.players.sprite)
+            self.particle_create(self.players.sprite)
+            log.info("-------------")
 
-        # 5.
-        for tile in self.all_tiles:
-            tile.draw(self.surface)
-        self.particle_draw(self.players.sprite, self.particles, self.run_particles)
-        self.players.draw(self.surface)
-        self.ui.draw()
+            # 5.
+            for tile in self.all_tiles:
+                tile.draw(self.surface)
+            self.particle_draw(self.players.sprite, self.particles, self.run_particles)
+            self.players.draw(self.surface)
+            self.ui.draw()

@@ -3,6 +3,8 @@ from brick_level import LevelBrick
 from settings import *
 from collections import namedtuple
 from decoration import Sky
+from victory import Victory
+from ui import UI
 
 
 class Overworld:
@@ -19,6 +21,8 @@ class Overworld:
         """
         self.surface = surface
         self.player = player
+        self.victory = Victory(self.surface, self.player)
+        self.ui = UI(self.surface, self.player)
 
         # Create overworld
         self.brick_levels = pygame.sprite.Group()
@@ -32,8 +36,7 @@ class Overworld:
         self.ava_bricks = None
         self.compl_brick = None
         self.proceed_to_level = None
-        self.running = False
-        self.victory = False
+        self.started = False
         self.player_pos = self.points[0]
 
         self.create_player()
@@ -158,21 +161,36 @@ class Overworld:
                 self.proceed_to_level = brick
                 self.player_pos = brick.rect.center
 
+    def run_brick(self, brick):
+        if not brick.stop_level:
+            brick.run_level(self.surface, self.player, self.ui)
+        else:
+            self.proceed_to_level = None
+            self.started = False
+            brick.stop_level = False
+
     def check_victory(self):
-        self.victory = all([level.completed for level in self.brick_levels.sprites()])
+        """
+        Checks if all levels were completed
+        :return:
+        """
+        return all([level.completed for level in self.brick_levels.sprites()])
+
+    def goto_victory_screen(self, events):
+        self.victory.draw(events)
 
     def check_state(self):
         """
         Prepare overworld and player when overworld is started
         :return:
         """
-        if not self.running:
+        if not self.started:
             pygame.mixer.Channel(BACKGROUND_MUSIC_CHANNEL).play(self.overworld_music, loops=-1)
             self.check_level_activation()
             self.check_bricks()
             self.check_points()
             self.set_player(self.players.sprite)
-            self.running = True
+            self.started = True
             self.compl_brick = None
 
     def completed_level(self, level):
@@ -205,21 +223,27 @@ class Overworld:
         pygame.draw.lines(self.surface, 'black', False, self.points, 10)
         pygame.draw.lines(self.surface, 'red', False, self.ava_points, 10)
 
-    def run(self):
-        # Creating level
-        self.check_state()
-        self.sky.draw(self.surface)
-        self.brick_levels.update()
+    def run(self, events):
+        if self.check_victory():
+            self.goto_victory_screen(events)
+        elif self.proceed_to_level and not self.check_victory():
+            self.run_brick(self.proceed_to_level)
+        else:
 
-        # Player interactions
-        self.players.update()
-        self.player_movement(self.players.sprite)
-        self.player_constraints(self.players.sprite, self.ava_bricks)
-        self.player_set_animation(self.players.sprite)
-        self.go_to_level()
+            # Creating level
+            self.check_state()
+            self.sky.draw(self.surface)
+            self.brick_levels.update()
 
-        # Drawing objects
-        self.draw_lines()
-        self.brick_levels.draw(self.surface)
-        self.players.draw(self.surface)
-        self.completed_level(self.compl_brick)
+            # Player interactions
+            self.players.update()
+            self.player_movement(self.players.sprite)
+            self.player_constraints(self.players.sprite, self.ava_bricks)
+            self.player_set_animation(self.players.sprite)
+            self.go_to_level()
+
+            # Drawing objects
+            self.draw_lines()
+            self.brick_levels.draw(self.surface)
+            self.players.draw(self.surface)
+            self.completed_level(self.compl_brick)

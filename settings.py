@@ -16,6 +16,7 @@ ENEMY_SPEED = 1
 JUMP_SPEED = -13
 ANIMATION_SPEED = 0.15
 BACKGROUND_MUSIC_CHANNEL = 0
+BLINKING_DURATION = 30
 
 PLAYER_IMAGES_DIR = "img_new"
 PARTICLE_IMAGES_DIR = "dust_particles"
@@ -25,6 +26,7 @@ BLOCK_DIR = "new blocks"
 CHECK_DIR = "graphics/check.png"
 TERRAIN_TILESET_DIR = 'graphics/tiles_new/Tileset_mod.png'
 ENEMY_TILESET_DIR = 'graphics/enemy/setup_tile.png'
+WATER_TILES_DIR = 'graphics/decoration/water'
 UI_COIN_DIR = "graphics/ui/coin.png"
 UI_HB_DIR = "graphics/ui/health_bar.png"
 UI_FONT_DIR = "graphics/ui/ARCADEPI.TTF"
@@ -55,11 +57,11 @@ levels = [level_0, level_0, level_0, level_0, ]
 level_bricks = {
     'level_0': {
         'name': 'level_0', 'pos': (screen_width/12, screen_height/2), 'level': levels[0], 'activate': True,
-        'completed': True, 'for_activation': None
+        'completed':  True, 'for_activation': None
     },
     'level_1': {
         'name': 'level_1', 'pos': (screen_width/12*3, screen_height/8), 'level': levels[1], 'activate': True,
-        'completed': True, 'for_activation': None
+        'completed':  True, 'for_activation': None
     },
     'level_2': {
         'name': 'level_2', 'pos': (screen_width/12*5, screen_height/2), 'level': levels[2], 'activate': False,

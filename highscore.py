@@ -6,7 +6,6 @@ class HighScore:  # TODO Refactor
     def __init__(self, surface):
         self.surface = surface
         self.highscores = []
-        self.created = False
 
         # Font
         pygame.font.init()

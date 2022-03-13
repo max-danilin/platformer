@@ -2,7 +2,7 @@ import pygame
 from settings import *
 from tiles import AnimatedTile, TerrainTile
 from random import choice, randint
-import glob
+import glob, os
 from utils import get_tile_img
 
 
@@ -25,6 +25,11 @@ class Sky:
         self.bottom = pygame.transform.scale(self.bottom, (screen_width, tile_size))
 
     def draw(self, surface):
+        """
+        Draw sky depending on Y coordinate
+        :param surface:
+        :return:
+        """
         for row in range(NUM_TILES_Y):
             y = row * tile_size
             if row < self.horizon:
@@ -44,7 +49,7 @@ class Water:
         Water tiles, their amount, starting and ending points.
         Creating all the tiles at once.
         imgs - list to save tile images in order not to load them every time
-        :param top:
+        :param top: level
         :param level_width:
         """
         water_start = -screen_width
@@ -52,16 +57,13 @@ class Water:
         tile_x_amount = (level_width + 2 * screen_width) // water_tile_width
 
         self.water_sprites = pygame.sprite.Group()
-        img = pygame.image.load('graphics/decoration/water/1.png').convert_alpha()
-        imgs = []
+        img = pygame.image.load(os.path.join(WATER_TILES_DIR, '1.png')).convert_alpha()
+        imgs = get_tile_img(WATER_TILES_DIR)
 
         for tile in range(tile_x_amount):
             x = tile * water_tile_width + water_start
             y = top
             sprite = AnimatedTile(WATER_TILE_WIDTH, (x, y), img)
-            if not imgs:
-                sprite.images = get_tile_img('graphics/decoration/water')
-                imgs = sprite.images
             sprite.images = imgs
             sprite.animated = True
             self.water_sprites.add(sprite)

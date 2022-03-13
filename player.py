@@ -45,12 +45,12 @@ class Player(pygame.sprite.Sprite):
 
         # Player internal parameters
         self.last_hit = pygame.time.get_ticks()
-        self.max_lives = 40
-        self.lives = 40
+        self.max_lives = 5
+        self.lives = 5
         self.coins = 0
         self.levels_completed = 0
         self.enemies_killed = 0
-        self.blinks = 30
+        self.blinks = BLINKING_DURATION
 
         # Sound
         self.jump_sound = pygame.mixer.Sound(JUMP_SOUND_DIR)
@@ -77,6 +77,10 @@ class Player(pygame.sprite.Sprite):
             self.direction.x = 0
 
     def if_blinked(self):
+        """
+        Revert image transparency back
+        :return:
+        """
         if self.changed:
             self.image.set_alpha(255)
             self.changed = False
@@ -107,7 +111,6 @@ class Player(pygame.sprite.Sprite):
         """
 
         self.get_inputs()
-
         self.if_blinked()
 
         self.exact_x = ceil(self.rect.x + self.direction.x * self.speed.x)
@@ -116,23 +119,20 @@ class Player(pygame.sprite.Sprite):
         self.rect.y += self.direction.y
 
         self.animate()
-
         self.prev_state = self.state
         self.speed.x = self.shift_speed
-
         self.blinking()
-        self.blinks = self.blinks + 1 if self.blinks < 30 else 30
 
     def blinking(self):
         """
         Function for blinking
-        We have to revert set_alpha for every state
         :return:
         """
-        if self.blinks < 30:
+        if self.blinks < BLINKING_DURATION:
             if not self.blinks % 2:
                 self.image.set_alpha(0)
                 self.changed = True
+            self.blinks += 1
 
     def jump(self):
         """
