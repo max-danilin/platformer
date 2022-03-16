@@ -1,4 +1,4 @@
-from PIL import Image
+from PIL import Image, UnidentifiedImageError
 import glob
 import os
 from settings import *
@@ -19,16 +19,38 @@ def refactor_image(size_x, size_y, files, states, new_dir):
     Function for refactoring sprite images into given sizes.
     We get the image, check if it relates to one of the states,
     crop white borders from it, then resize and rename it.
+    :param new_dir: destination folder
+    :param states: sequence of states
+    :param files: source files as list
     :param size_x:
     :param size_y:
     :return:
     """
-    os.makedirs(new_dir, exist_ok=True)
+    if 0 < size_y < 1000 and 0 < size_x < 1000:
+        pass
+    else:
+        raise ValueError(f"Sizes should be in range 1-1000, not {size_y} and {size_x}")
+    if isinstance(files, list) or isinstance(files, tuple):
+        pass
+    else:
+        raise TypeError("Files should be list or tuple.")
+    if isinstance(states, list) or isinstance(states, tuple):
+        pass
+    else:
+        raise TypeError("States should be list or tuple.")
+    try:
+        os.makedirs(new_dir, exist_ok=True)
+    except TypeError:
+        raise TypeError('New dir should be string.')
     for file in files:
         for state in states:
             if file.lower().find(state) != -1:
-                im = Image.open(file)
-                name = file[4:-4] + "_mod.png"
+                try:
+                    im = Image.open(file)
+                except UnidentifiedImageError:
+                    raise TypeError(f"Wrong image format {file[file.find('.'):]}")
+                f_name = os.path.split(file)[1]
+                name = f_name[:-4] + "_mod.png"
                 im.getbbox()
                 im = im.crop(im.getbbox())
                 im = im.resize((size_x, size_y))
@@ -36,7 +58,7 @@ def refactor_image(size_x, size_y, files, states, new_dir):
                 im.save(path)
 
 
-def refactor_tile_image(size_x, size_y):
+def refactor_tile_image(size_x, size_y, files, new_dir):
     """
     Function for refactoring sprite images into given sizes.
     We get the image, check if it relates to one of the states,
@@ -69,3 +91,4 @@ def refactor_tile_image(size_x, size_y):
 #     im.save(path)
 
 #refactor_tile_image(192, 178)
+#refactor_image(0, 1, glob.glob("img"), ('run',), 123)
