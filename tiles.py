@@ -86,12 +86,11 @@ class ObjectTile(StaticTile):
     """
     def __init__(self, size, pos, img):
         super().__init__(size, pos, img)
+        x, y = pos
+        self.rect = self.image.get_rect(bottomleft=(x + 15, y + size))
 
         self.value = 0
         self.hp_recovery = False
-
-        x, y = pos
-        self.rect = self.image.get_rect(bottomleft=(x+15, y+size))
 
 
 class AnimatedTile(Tile):
@@ -126,15 +125,15 @@ class CoinTile(AnimatedTile):
     """
     def __init__(self, size, pos, img):
         super().__init__(size, pos, img)
+        x, y = pos
+        self.rect = self.image.get_rect(bottomleft=(x + 15, y + size))
+
         self.images = get_images()[0]
         self.image = self.images[0]
         self.animated = True
 
         self.value = 1
         self.hp_recovery = False
-
-        x, y = pos
-        self.rect = self.image.get_rect(bottomleft=(x+15, y+size))
 
 
 class EnemyTile(AnimatedTile):
@@ -143,6 +142,13 @@ class EnemyTile(AnimatedTile):
     We use a bit smaller rect for checking collisions to provide better visuals
     """
     def __init__(self, size, pos, img):
+        """
+        flipped - preloaded flipped images
+        collision_rect - hitbox for collisions with player
+        :param size:
+        :param pos:
+        :param img:
+        """
         super().__init__(size, pos, img)
         self.images = get_images()[1]
         self.flipped = [pygame.transform.flip(image, True, False) for image in self.images]
@@ -159,6 +165,11 @@ class EnemyTile(AnimatedTile):
         )
 
     def update(self, x_shift):
+        """
+        Update enemy based on its speed and moving direction. Also deal with collision hitbox
+        :param x_shift:
+        :return:
+        """
         super().update(x_shift)
         self.rect.x += self.enemy_speed
         self.collision_rect.y = self.rect.y

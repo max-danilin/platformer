@@ -15,9 +15,9 @@ class Sky:
         Initializing skies with 3 different images
         :param horizon: line of horizon in rows from top
         """
-        self.top = pygame.image.load('graphics/decoration/sky/sky_top.png').convert()
-        self.middle = pygame.image.load('graphics/decoration/sky/sky_middle.png').convert()
-        self.bottom = pygame.image.load('graphics/decoration/sky/sky_bottom.png').convert()
+        self.top = pygame.image.load(os.path.join(SKY_TILES_DIR, 'sky_top.png')).convert()
+        self.middle = pygame.image.load(os.path.join(SKY_TILES_DIR, 'sky_middle.png')).convert()
+        self.bottom = pygame.image.load(os.path.join(SKY_TILES_DIR, 'sky_bottom.png')).convert()
         self.horizon = horizon
 
         self.top = pygame.transform.scale(self.top, (screen_width, tile_size))
@@ -49,7 +49,7 @@ class Water:
         Water tiles, their amount, starting and ending points.
         Creating all the tiles at once.
         imgs - list to save tile images in order not to load them every time
-        :param top: level
+        :param top: Y coordinate for water
         :param level_width:
         """
         water_start = -screen_width
@@ -84,7 +84,7 @@ class Clouds:
         :param level_width:
         :param cloud_number: number of clouds to blit
         """
-        cloud_list = [pygame.image.load(cloud).convert_alpha() for cloud in glob.glob('graphics/decoration/clouds/*')]
+        cloud_list = [pygame.image.load(cloud).convert_alpha() for cloud in glob.glob(os.path.join(CLOUD_TILE_DIR, '*'))]
 
         # Boundaries
         min_x = -screen_width

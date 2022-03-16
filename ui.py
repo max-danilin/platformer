@@ -45,9 +45,13 @@ class UI:
         Method for drawing
         :return:
         """
+        # Display number of coins
         surf_coins = self.font.render(str(self.player.coins), True, 'black')
         coin_rect = surf_coins.get_rect(midleft=(self.coin_rect.right+5, self.coin_rect.centery))
         self.surface.blit(surf_coins, coin_rect)
+
+        # Display images
         self.surface.blit(self.coin_img, self.coin_rect)
         self.surface.blit(self.health_img, (40, 20))
+
         self.get_current_hp()

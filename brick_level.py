@@ -12,6 +12,9 @@ class LevelBrick(pygame.sprite.Sprite):
         """
         active - copy of initial image to use when level becomes active
         inactive - image for inactive levels
+        created_level - checks whether level has already been created
+        associated_level - Level instance, associated with current brick
+        stop_level - flag to determine whether execution of level should be stopped
         :param name: name of the level
         :param pos: position of the brick
         :param level: level map to load
@@ -25,6 +28,8 @@ class LevelBrick(pygame.sprite.Sprite):
         self.completed = completed
         self.for_activation = for_activation
         self.name = name
+
+        # Flags
         self.created_level = False
         self.associated_level = None
         self.stop_level = False
@@ -43,21 +48,33 @@ class LevelBrick(pygame.sprite.Sprite):
         self.rect = self.image.get_rect(topleft=pos)
 
     def create_level(self, surface, player, ui):
+        """
+        Create associated level
+        """
         self.associated_level = Level(level_bricks[self.name]['level'], surface, player, ui)
 
     def run_level(self, surface, player, ui):
+        """
+        Function for running associated Level. Runs Level except for few scenarios:
+        - Level was completed
+        - Level was postponed
+        :param surface:
+        :param player:
+        :param ui:
+        :return:
+        """
+        # Creating Level and running
         if not self.created_level:
             self.create_level(surface, player, ui)
             self.created_level = True
         self.associated_level.run()
+
         if self.associated_level.completed:
             self.completed = True
             self.stop_level = True
         elif self.associated_level.back_to_menu:
             self.stop_level = True
             self.associated_level.back_to_menu = False
-        else:
-            self.stop_level = False
 
     def is_completed(self):
         """

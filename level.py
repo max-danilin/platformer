@@ -7,8 +7,8 @@ import utils
 from decoration import Sky, Water, Clouds
 from endgame import EndGame
 
+# Logging
 log = logging.getLogger("platform")
-
 stream_handler = logging.StreamHandler()
 stream_handler.setFormatter(logging.Formatter('%(module)s - %(levelname)s - %(message)s'))
 log.addHandler(stream_handler)
@@ -28,6 +28,8 @@ class Level:
         back_to_menu - flag to check if game should get back to overworld
         postponed - flag to pause level if backspace was hit
         pps - player's position when level was postponed
+        ui - player's UI
+        endgame- class for endgame screen
         :param level_data: level map in txt format
         :param surface: surface to draw on
         """
@@ -217,6 +219,7 @@ class Level:
     @staticmethod
     def show_text(font, lives, coins, surface):
         """
+        !Currently unused!
         Show lives, coins on the surface
         :param font: type of font
         :param lives: player lives
@@ -541,60 +544,66 @@ class Level:
         if self.postponed:
             pygame.mixer.Channel(BACKGROUND_MUSIC_CHANNEL).play(self.level_music, loops=-1)
 
-    def run(self):
+    def draw_level(self):
         """
         Running level following these consecutive steps:
-        0. Create tiles and other non-player objects
-        1. Get changes to player state according to inputs and external level effects(such as gravity)
-        2. Change player's position
-        3. Process new positions into level internal state(such as collision detection)
+        0. Draw background
+        1. Processing external changes to player's state
+        2. Update tiles and other non-player objects
+        3. Process player's collisions
         4. Get player's new state according to new circumstances
         5. Draw everything
-        :return:
+        """
+        # 0.
+        self.sky.draw(self.surface)
+        self.clouds.draw(self.surface, self.world_shift)
+        self.water.draw(self.surface, self.world_shift)
+
+        # 1.
+        self.start_music()
+        self.restore_player(self.players.sprite)
+        self.apply_gravity(self.gravity)
+        self.permit_jump(self.players.sprite)
+        self.return_to_menu(self.players.sprite)
+
+        # 2.
+        self.players.update()
+        for tile in self.all_tiles:
+            tile.update(self.world_shift)
+        self.constrains.update(self.world_shift)
+        self.tree_obs.update(self.world_shift)
+        self.level_end.update(self.world_shift)
+
+        # 3.
+        self.collision_x_handler(self.players.sprite, self.terrain_tiles)
+        self.collision_y_handler(self.players.sprite, self.terrain_tiles)
+        self.tree_collision(self.players.sprite, self.tree_obs)
+        self.objects_collision(self.players.sprite, self.objects_tiles)
+        self.enemy_collision(self.players.sprite, self.enemy_tiles)
+        self.level_finish(self.players.sprite, self.level_end)
+        for enemy in self.enemy_tiles.sprites():
+            self.enemy_constrains(enemy, self.constrains)
+        self.scroll_x(self.players.sprite)
+
+        # 4.
+        self.check_defeat(self.players.sprite)
+        self.check_state(self.players.sprite)
+        self.particle_create(self.players.sprite)
+        log.info("-------------")
+
+        # 5.
+        for tile in self.all_tiles:
+            tile.draw(self.surface)
+        self.particle_draw(self.players.sprite, self.particles, self.run_particles)
+        self.players.draw(self.surface)
+        self.ui.draw()
+
+    def run(self):
+        """
+        Function for running level if player's hasn't been defeated
         """
         if self.check_defeat(self.players.sprite):
             self.goto_endscore()
         else:
+            self.draw_level()
 
-            self.sky.draw(self.surface)
-            self.clouds.draw(self.surface, self.world_shift)
-            self.water.draw(self.surface, self.world_shift)
-
-            # 1.
-            self.start_music()
-            self.restore_player(self.players.sprite)
-            self.apply_gravity(self.gravity)
-            self.permit_jump(self.players.sprite)
-            self.return_to_menu(self.players.sprite)
-
-            # 2.
-            self.players.update()
-            for tile in self.all_tiles:
-                tile.update(self.world_shift)
-            self.constrains.update(self.world_shift)
-            self.tree_obs.update(self.world_shift)
-            self.level_end.update(self.world_shift)
-
-            # 3.
-            self.collision_x_handler(self.players.sprite, self.terrain_tiles)
-            self.collision_y_handler(self.players.sprite, self.terrain_tiles)
-            self.tree_collision(self.players.sprite, self.tree_obs)
-            self.objects_collision(self.players.sprite, self.objects_tiles)
-            self.enemy_collision(self.players.sprite, self.enemy_tiles)
-            self.level_finish(self.players.sprite, self.level_end)
-            for enemy in self.enemy_tiles.sprites():
-                self.enemy_constrains(enemy, self.constrains)
-            self.scroll_x(self.players.sprite)
-
-            # 4.
-            self.check_defeat(self.players.sprite)
-            self.check_state(self.players.sprite)
-            self.particle_create(self.players.sprite)
-            log.info("-------------")
-
-            # 5.
-            for tile in self.all_tiles:
-                tile.draw(self.surface)
-            self.particle_draw(self.players.sprite, self.particles, self.run_particles)
-            self.players.draw(self.surface)
-            self.ui.draw()

@@ -3,18 +3,18 @@ import glob
 import os
 from settings import *
 
-states = ('idle', 'jump', 'run')
+#states = ('idle', 'jump', 'run')
 #new_dir = PLAYER_IMAGES_DIR
 #new_dir = "collect_new"
-new_dir = "new blocks"
-files = os.listdir("block levels")
+#new_dir = "new blocks"
+#files = os.listdir("block levels")
 #files = glob.glob('img/*.png')
 #files = os.listdir('Collectable Object/')
-os.makedirs(new_dir, exist_ok=True)
+#os.makedirs(new_dir, exist_ok=True)
 # 54*60
 
 
-def refactor_image(size_x, size_y):
+def refactor_image(size_x, size_y, files, states, new_dir):
     """
     Function for refactoring sprite images into given sizes.
     We get the image, check if it relates to one of the states,
@@ -23,6 +23,7 @@ def refactor_image(size_x, size_y):
     :param size_y:
     :return:
     """
+    os.makedirs(new_dir, exist_ok=True)
     for file in files:
         for state in states:
             if file.lower().find(state) != -1:

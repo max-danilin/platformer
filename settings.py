@@ -1,3 +1,4 @@
+# Position attributes for levels and screen
 NUM_TILES_Y = 11
 tile_size = 64
 screen_width = 1200
@@ -5,19 +6,19 @@ screen_height = NUM_TILES_Y * tile_size
 LEVEL_BRICK_SIZE = 50
 WATER_TILE_WIDTH = 192
 ENEMY_COLLISION_OFFSET = 9
-
 LEFT_SCREEN_EDGE = screen_width / 5
 RIGHT_SCREEN_EDGE = screen_width * 4 / 5
-
-AFTER_DAMAGE_INVUL = 1000
 TREE_OBSTACLE_ADDED_SPACE = 20
+
+# Player's attributes
+AFTER_DAMAGE_INVUL = 1000
 PLAYER_SPEED = 5
 ENEMY_SPEED = 1
 JUMP_SPEED = -13
 ANIMATION_SPEED = 0.15
-BACKGROUND_MUSIC_CHANNEL = 0
 BLINKING_DURATION = 30
 
+# Level images
 PLAYER_IMAGES_DIR = "img_new"
 PARTICLE_IMAGES_DIR = "dust_particles"
 COINS_DIR = "graphics/collect_new/coins"
@@ -26,11 +27,18 @@ BLOCK_DIR = "new blocks"
 CHECK_DIR = "graphics/check.png"
 TERRAIN_TILESET_DIR = 'graphics/tiles_new/Tileset_mod.png'
 ENEMY_TILESET_DIR = 'graphics/enemy/setup_tile.png'
+
+# Background tiles
 WATER_TILES_DIR = 'graphics/decoration/water'
+SKY_TILES_DIR = 'graphics/decoration/sky'
+CLOUD_TILE_DIR = 'graphics/decoration/clouds'
+
+# UI
 UI_COIN_DIR = "graphics/ui/coin.png"
 UI_HB_DIR = "graphics/ui/health_bar.png"
 UI_FONT_DIR = "graphics/ui/ARCADEPI.TTF"
 
+# Musicand sounds
 COIN_SOUND_DIR = "audio/effects/coin.wav"
 STOMP_SOUND_DIR = "audio/effects/stomp.wav"
 HIT_SOUND_DIR = "audio/effects/hit.wav"
@@ -39,7 +47,13 @@ LEVEL_MUSIC_DIR = "audio/level_music.wav"
 OVERWORLD_MUSIC_DIR = "audio/overworld_music.wav"
 GAMEOVER_SOUND_DIR = "audio/GameOver.wav"
 
-# Levels data
+# Hashing
+HASH_KEY = "maxd"
+HIGHSCORES_DIR = "highscore.dat"
+
+BACKGROUND_MUSIC_CHANNEL = 0
+
+# Tiles data for levels
 level_0 = {
     'terrain': 'lvl 0/level 0_terrain.csv',
     'coins': 'lvl 0/level 0_coins.csv',
@@ -52,8 +66,10 @@ level_0 = {
     'tree obstacle': "lvl 0/level 0_tree obstacle.csv",
 }
 
+# Levels list
 levels = [level_0, level_0, level_0, level_0, ]
 
+# Brick levels data
 level_bricks = {
     'level_0': {
         'name': 'level_0', 'pos': (screen_width/12, screen_height/2), 'level': levels[0], 'activate': True,
@@ -65,7 +81,7 @@ level_bricks = {
     },
     'level_2': {
         'name': 'level_2', 'pos': (screen_width/12*5, screen_height/2), 'level': levels[2], 'activate': False,
-        'completed': True, 'for_activation': ('level_0', 'level_1')
+        'completed': False, 'for_activation': ('level_0', 'level_1')
     },
     'level_3': {
         'name': 'level_3', 'pos': (screen_width/12*7, screen_height/8), 'level': levels[3], 'activate': False,
@@ -73,6 +89,7 @@ level_bricks = {
     },
 }
 
+# Tile images
 grass_tiles = {
     0: 'graphics/objects/Grass/1.png',
     1: 'graphics/objects/Grass/2.png',

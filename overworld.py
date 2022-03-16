@@ -14,8 +14,14 @@ class Overworld:
     def __init__(self, surface, player):
         """
         points - central points of level bricks to draw routes
-        ava_points - central points of available brick levels
+        ava_bricks - list of bricks that represent available levels at the moment, needed mostly for constraints
+        ava_points - central points of available brick levels to draw paths
         compl_brick - level that player tries to access while it was completed
+        ui - create player's UI
+        victory - create Victory class for victory screen
+        proceed_to_level - brick level that was chosen
+        started - whether overworld was launched at this frame
+        player_pos - saving position of player in the overworld to restore it when game returns to overworld
         :param surface:
         :param player:
         """
@@ -32,9 +38,11 @@ class Overworld:
         self.points = [brick.rect.center for brick in self.brick_levels.sprites()]
 
         # Flags and parameters
-        self.ava_points = None
-        self.ava_bricks = None
+            # Bricks
+        self.ava_points = list()
+        self.ava_bricks = list()
         self.compl_brick = None
+            # Flags
         self.proceed_to_level = None
         self.started = False
         self.player_pos = self.points[0]
@@ -77,16 +85,16 @@ class Overworld:
         y = (x - p0.x) / (p1.x - p0.x) * (p1.y - p0.y) + p0.y
         return int(y)
 
-    def check_bricks(self):
+    def check_available(self):
         """
-        Function to get brick levels, available at the moment. Sorted by X coordinate
+        Function to get brick levels and their central points, available at the moment. Sorted by X coordinate
         :return: last available brick
         """
-        avail_bricks = [brick for brick in self.brick_levels.sprites() if brick.activate]
-        self.ava_bricks = sorted(avail_bricks, key=lambda item: item.rect.x)
-
-    def check_points(self):
-        self.ava_points = [brick.rect.center for brick in self.brick_levels.sprites() if brick.activate]
+        for brick in self.brick_levels.sprites():
+            if brick.activate:
+                self.ava_bricks.append(brick)
+                self.ava_points.append(brick.rect.center)
+        self.ava_bricks = sorted(self.ava_bricks, key=lambda item: item.rect.x)
 
     @staticmethod
     def player_constraints(player, avail):
@@ -118,7 +126,7 @@ class Overworld:
 
     def set_player(self, player):
         """
-        Setting player in the overworld
+        Setting player in the overworld after each level completion
         :param player:
         :return:
         """
@@ -149,7 +157,8 @@ class Overworld:
 
     def go_to_level(self):
         """
-        Function to go to given level
+        Function to go to given level if ENTER key is hit. If brick is already completed, set flag to True
+        Otherwise save chosen level and player's position in overworld
         :return:
         """
         keys = pygame.key.get_pressed()
@@ -162,6 +171,11 @@ class Overworld:
                 self.player_pos = brick.rect.center
 
     def run_brick(self, brick):
+        """
+        Function for running level, associated with given brick level. Check if brick returns any of the stopping flags
+        :param brick:
+        :return:
+        """
         if not brick.stop_level:
             brick.run_level(self.surface, self.player, self.ui)
         else:
@@ -176,10 +190,7 @@ class Overworld:
         """
         return all([level.completed for level in self.brick_levels.sprites()])
 
-    def goto_victory_screen(self, events):
-        self.victory.draw(events)
-
-    def check_state(self):
+    def set_state(self):
         """
         Prepare overworld and player when overworld is started
         :return:
@@ -187,8 +198,7 @@ class Overworld:
         if not self.started:
             pygame.mixer.Channel(BACKGROUND_MUSIC_CHANNEL).play(self.overworld_music, loops=-1)
             self.check_level_activation()
-            self.check_bricks()
-            self.check_points()
+            self.check_available()
             self.set_player(self.players.sprite)
             self.started = True
             self.compl_brick = None
@@ -205,7 +215,7 @@ class Overworld:
 
     def check_level_activation(self):
         """
-        Check if requirements for level activation are fulfilled
+        Check if requirements for level activation are fulfilled for each brick and if so, activate it
         :return:
         """
         for brick in self.brick_levels.sprites():
@@ -223,27 +233,40 @@ class Overworld:
         pygame.draw.lines(self.surface, 'black', False, self.points, 10)
         pygame.draw.lines(self.surface, 'red', False, self.ava_points, 10)
 
+    def draw_overworld(self):
+        """
+        Function for drawing overworld
+        :return:
+        """
+        # Creating level
+        self.set_state()
+        self.sky.draw(self.surface)
+        self.brick_levels.update()
+
+        # Player interactions
+        self.players.update()
+        self.player_movement(self.players.sprite)
+        self.player_constraints(self.players.sprite, self.ava_bricks)
+        self.player_set_animation(self.players.sprite)
+        self.go_to_level()
+
+        # Drawing objects
+        self.draw_lines()
+        self.brick_levels.draw(self.surface)
+        self.players.draw(self.surface)
+        self.completed_level(self.compl_brick)
+
     def run(self, events):
+        """
+        Function for running overworld. Draws overworld except for few scenarios:
+        - player has won, then proceed to victory
+        - player has selected level, then proceed to level
+        :param events:
+        :return:
+        """
         if self.check_victory():
-            self.goto_victory_screen(events)
+            self.victory.draw(events)
         elif self.proceed_to_level and not self.check_victory():
             self.run_brick(self.proceed_to_level)
         else:
-
-            # Creating level
-            self.check_state()
-            self.sky.draw(self.surface)
-            self.brick_levels.update()
-
-            # Player interactions
-            self.players.update()
-            self.player_movement(self.players.sprite)
-            self.player_constraints(self.players.sprite, self.ava_bricks)
-            self.player_set_animation(self.players.sprite)
-            self.go_to_level()
-
-            # Drawing objects
-            self.draw_lines()
-            self.brick_levels.draw(self.surface)
-            self.players.draw(self.surface)
-            self.completed_level(self.compl_brick)
+            self.draw_overworld()

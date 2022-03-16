@@ -4,11 +4,11 @@ from maker import refactor_image
 from math import ceil
 from settings import *
 from utils import get_img, load_flipped
+import glob
 
 # Create images if they haven't been created before
-img_dir = PLAYER_IMAGES_DIR
-if not os.path.exists(img_dir):
-    refactor_image(54, 60)
+if not os.path.exists(PLAYER_IMAGES_DIR):
+    refactor_image(54, 60, glob.glob('img/*.png'), ('idle', 'jump', 'run'), PLAYER_IMAGES_DIR)
 
 
 class Player(pygame.sprite.Sprite):
@@ -28,7 +28,7 @@ class Player(pygame.sprite.Sprite):
         self.all_states = ('idle', "jump", "run")
         self.state = "idle"
         self.prev_state = ""
-        self.states = get_img(img_dir, self.all_states)
+        self.states = get_img(PLAYER_IMAGES_DIR, self.all_states)
         self.flipped = load_flipped(self.states)
         self.changed = False
 
