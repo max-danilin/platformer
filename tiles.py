@@ -23,6 +23,8 @@ class Tile(pygame.sprite.Sprite):
         :param pos: position of a tile
         """
         super().__init__()
+        if size < 0:
+            raise ValueError('Size of the tile cannot be less than 0.')
         self.image = pygame.Surface((size, size))
         self.image.fill('white')
         self.rect = self.image.get_rect(topleft=pos)
@@ -33,6 +35,8 @@ class Tile(pygame.sprite.Sprite):
         :param x_shift: speed of camera movement
         :return:
         """
+        if not isinstance(x_shift, int) and not isinstance(x_shift, float):
+            raise TypeError(f'Shift shoul be a number, not {type(x_shift)}')
         self.rect.x += x_shift
 
 
@@ -106,6 +110,8 @@ class AnimatedTile(Tile):
         self.animated = False
         self.frame_index = 0
         self.animation_speed = ANIMATION_SPEED
+        if not isinstance(self.animation_speed, int) and not isinstance(self.animation_speed, float):
+            raise TypeError(f'Animation speed should be a number, not {type(self.animation_speed)}')
 
     def animate(self):
         self.frame_index += self.animation_speed
@@ -163,6 +169,11 @@ class EnemyTile(AnimatedTile):
             (self.rect.left+ENEMY_COLLISION_OFFSET, self.rect.top),
             (self.rect.width-ENEMY_COLLISION_OFFSET*2, self.rect.height)
         )
+        self.check_parameters()
+
+    def check_parameters(self):
+        if not isinstance(self.enemy_speed, int) and not isinstance(self.enemy_speed, float):
+            raise TypeError(f'Enemy speed should be a number, not {type(self.enemy_speed)}')
 
     def update(self, x_shift):
         """

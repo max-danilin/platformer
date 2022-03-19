@@ -56,11 +56,13 @@ class HighScore:
         :param kills: number of enemies destroyed
         :return:
         """
+        if not isinstance(name, str) or not isinstance(score, int) or not isinstance(kills, int):
+            raise TypeError("Wrong data for adding high score.")
         hash = hashlib.blake2b()
         hash.update(str(name + str(score) + HASH_KEY).encode('utf-8'))
 
         with open(HIGHSCORES_DIR, "a") as f:
-            f.write(name + "[::]" + str(score) + "[::]" + str(kills) + "[::]" + str(hash.hexdigest() + "\n"))
+            f.write(name + "[::]" + str(score) + "[::]" + str(kills) + "[::]" + str(hash.hexdigest()) + "\n")
 
     def load(self):
         """

@@ -47,6 +47,16 @@ class LevelBrick(pygame.sprite.Sprite):
 
         self.rect = self.image.get_rect(topleft=pos)
 
+        self.check_parameters()
+
+    def check_parameters(self):
+        if not isinstance(self.level, dict):
+            raise TypeError(f'Level should be dictionary, not {type(self.level)}')
+        if not isinstance(self.name, str):
+            raise TypeError(f'Name should be string, not {type(self.name)}')
+        if not isinstance(self.for_activation, list) and not isinstance(self.for_activation, tuple) and not self.for_activation is None:
+            raise TypeError("For activation parameter should either be list or tuple.")
+
     def create_level(self, surface, player, ui):
         """
         Create associated level

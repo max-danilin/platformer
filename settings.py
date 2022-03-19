@@ -9,6 +9,7 @@ ENEMY_COLLISION_OFFSET = 9
 LEFT_SCREEN_EDGE = screen_width / 5
 RIGHT_SCREEN_EDGE = screen_width * 4 / 5
 TREE_OBSTACLE_ADDED_SPACE = 20
+GRAVITY = 0.5
 
 # Player's attributes
 AFTER_DAMAGE_INVUL = 1000
@@ -17,6 +18,12 @@ ENEMY_SPEED = 1
 JUMP_SPEED = -13
 ANIMATION_SPEED = 0.15
 BLINKING_DURATION = 30
+PLAYER_MAX_LIVES = 5
+ALL_STATES = ('idle', "jump", "run")
+
+# UI parameters
+HELTH_BAR_POS = (74, 49)
+HEALTH_BAR_COLOR = 'red'
 
 # Level images
 PLAYER_IMAGES_DIR = "img_new"

@@ -52,6 +52,8 @@ class Water:
         :param top: Y coordinate for water
         :param level_width:
         """
+        if top < 0 or level_width < 0:
+            raise ValueError("Parameters for Water should be more than 0.")
         water_start = -screen_width
         water_tile_width = WATER_TILE_WIDTH
         tile_x_amount = (level_width + 2 * screen_width) // water_tile_width
@@ -84,6 +86,8 @@ class Clouds:
         :param level_width:
         :param cloud_number: number of clouds to blit
         """
+        if horizon < 0 or level_width < 0 or cloud_number < 0:
+            raise ValueError("Parameters for Clouds should be more than 0.")
         cloud_list = [pygame.image.load(cloud).convert_alpha() for cloud in glob.glob(os.path.join(CLOUD_TILE_DIR, '*'))]
 
         # Boundaries

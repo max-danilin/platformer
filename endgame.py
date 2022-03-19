@@ -24,6 +24,8 @@ class EndGame:
         :return:
         """
         if self.created:
+            # channel = pygame.mixer.find_channel(force=True)
+            # channel.play(self.end_sound)
             pygame.mixer.Channel(BACKGROUND_MUSIC_CHANNEL+1).play(self.end_sound)
 
     def draw(self):

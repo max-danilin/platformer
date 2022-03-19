@@ -6,6 +6,7 @@ import logging
 import utils
 from decoration import Sky, Water, Clouds
 from endgame import EndGame
+from types import GeneratorType
 
 # Logging
 log = logging.getLogger("platform")
@@ -14,6 +15,10 @@ stream_handler.setFormatter(logging.Formatter('%(module)s - %(levelname)s - %(me
 log.addHandler(stream_handler)
 log.setLevel(logging.CRITICAL)  # DEBUG
 stream_handler.setLevel(logging.DEBUG)  # INFO
+
+
+class LevelError(Exception):
+    pass
 
 
 class Level:
@@ -33,6 +38,8 @@ class Level:
         :param level_data: level map in txt format
         :param surface: surface to draw on
         """
+        if not isinstance(level_data, dict):
+            raise LevelError(f'Level data should be dict, not {type(level_data)}')
         self.level_data = level_data
         self.surface = surface
         self.player = player
@@ -41,7 +48,7 @@ class Level:
 
         # Local level variables
         self.world_shift = 0
-        self.gravity = 0.5
+        self.gravity = GRAVITY
         self.level_width = 0
 
         # Flags
@@ -99,6 +106,8 @@ class Level:
         :param path_dict: dictionary with paths to images
         :return: dictionary with same key as path_dict and loaded image as value
         """
+        if not isinstance(path_dict, dict):
+            raise LevelError('Wrong path to dictionary with tiles.')
         img_dict = dict()
         for index, value in path_dict.items():
             img_dict[index] = pygame.image.load(value).convert_alpha()
@@ -122,28 +131,34 @@ class Level:
         }
         return preload_dict
 
-    def create_tile_group(self, type):
+    def create_tile_group(self, type_):
         """
         Method for creating tile groups for terrain, trees, objects, enemies ans so on
-        :param type: type of tiles to create
+        :param type_: type of tiles to create
         :return:
         """
-        tilefile = utils.import_csv(self.level_data[type])
-        if type not in ('player', "tree obstacle"):
-            imgs = self.preloaded[type]
+        if self.level_data.get(type_) is None:
+            raise LevelError(f'Tiles of type <{type_}> not found in levels dictionary.')
+        tilefile = utils.import_csv(self.level_data[type_])
+        if not isinstance(tilefile, GeneratorType):
+            raise LevelError('Error during csv import.')
+        if type_ not in ('player', "tree obstacle"):
+            imgs = self.preloaded[type_]
         row = 0
         for line in tilefile:
+            if not isinstance(line, list):
+                raise LevelError(f'{line} from {tilefile} should be list.')
             if not self.level_width:
                 self.level_width = len(line) * tile_size
             for column, item in enumerate(line):
                 if item != '-1':
                     x = tile_size * column
                     y = tile_size * row
-                    if type == 'terrain':
+                    if type_ == 'terrain':
                         terrain_surf = imgs[int(item)]
                         sprite = TerrainTile(tile_size, (x, y), terrain_surf)
                         self.terrain_tiles.add(sprite)
-                    if type in ('enemies', 'constrains'):
+                    if type_ in ('enemies', 'constrains'):
                         enemies_surf = imgs[int(item)]
                         if item == '0':
                             sprite = EnemyTile(tile_size, (x, y), enemies_surf)
@@ -151,29 +166,29 @@ class Level:
                         elif item == '1':
                             sprite = Tile(tile_size, (x, y))
                             self.constrains.add(sprite)
-                    if type == 'player':
+                    if type_ == 'player':
                         if item == '0':
                             self.player.rect.topleft = (x, y)
                             self.players.add(self.player)
                         elif item == '1':
                             sprite = Tile(tile_size, (x, y))
                             self.level_end.add(sprite)
-                    if type == 'grass':
+                    if type_ == 'grass':
                         img = imgs[int(item)]
                         sprite = StaticTile(tile_size, (x, y), img)
                         self.background_tiles.add(sprite)
-                    if type == 'trees':
+                    if type_ == 'trees':
                         img = imgs[int(item)]
                         sprite = StaticTile(tile_size, (x, y), img)
                         self.background_tiles.add(sprite)
-                    if type == 'fg trees':
+                    if type_ == 'fg trees':
                         img = imgs[int(item)]
                         sprite = StaticTile(tile_size, (x, y), img)
                         self.background_tiles.add(sprite)
-                    if type == "tree obstacle":
+                    if type_ == "tree obstacle":
                         sprite = Tile(tile_size + TREE_OBSTACLE_ADDED_SPACE, (x, y))
                         self.tree_obs.add(sprite)
-                    if type == 'coins':
+                    if type_ == 'coins':
                         img = imgs[int(item)]
                         if item == '0':
                             sprite = CoinTile(tile_size, (x, y), img)
@@ -214,6 +229,8 @@ class Level:
         Applying gravity onto player object
         :return: None
         """
+        if not isinstance(gravity, int) and not isinstance(gravity, float):
+            raise LevelError(f"Gravity should be number, not {type(gravity)}")
         self.players.sprite.direction.y += gravity
 
     @staticmethod
@@ -300,11 +317,11 @@ class Level:
         :param objects: objects to collide with
         :return:
         """
-        for object in pygame.sprite.spritecollide(player, objects, dokill=True):
-            player.coins += object.value
-            if object.value:
+        for object_ in pygame.sprite.spritecollide(player, objects, dokill=True):
+            player.coins += object_.value
+            if object_.value:
                 self.coin_sound.play()
-            if object.hp_recovery:
+            if object_.hp_recovery:
                 player.lives += 1
 
     def add_explosion_particles(self, pos):
@@ -326,6 +343,8 @@ class Level:
         :param enemies: enemy tiles
         :return:
         """
+        if AFTER_DAMAGE_INVUL < 0:
+            raise ValueError("Set proper invulnerability time")
         collision_tolerance = abs(player.direction.y) + 1
         killed = False
         for enemy in enemies:
@@ -420,15 +439,16 @@ class Level:
         collided_x = False
         player.rect.x = player.exact_x
 
-        collision_tolerance = abs(player.speed.x) + 1
+        collision_tolerance = (player.speed.x + 1) * abs(player.direction.x)
         for tile in pygame.sprite.spritecollide(player, tiles, dokill=False):
-            log.info("Collision X")
-            collided_x = True
+            log.info("Collision from X")
             if tile.rect.right - player.rect.left < collision_tolerance:
+                collided_x = True
                 player.rect.left = tile.rect.right
                 log.debug(f"COLLIDE X: player left={player.rect.left}, player y={player.rect.y};"
                           f" tile right={tile.rect.right}, tile y={tile.rect.y}")
             elif player.rect.right - tile.rect.left < collision_tolerance:
+                collided_x = True
                 player.rect.right = tile.rect.left
                 log.debug(f"COLLIDE X: player right={player.rect.right}, player y={player.rect.y};"
                           f" tile left={tile.rect.right}, tile y={tile.rect.y}")
@@ -453,14 +473,15 @@ class Level:
         log.debug(f"Player y = {player.rect.y}, exact y = {player.exact_y}")
 
         for tile in pygame.sprite.spritecollide(player, tiles, dokill=False):
-            log.info("Collision Y")
-            collided_y = True
+            log.info("Collision from Y")
             if tile.rect.bottom - player.rect.top < collision_tolerance:
+                collided_y = True
                 player.rect.top = tile.rect.bottom
                 player.direction.y = 0
                 log.debug(f"COLLIDE Y: player x={player.rect.x}, player top={player.rect.top};"
                           f" tile x={tile.rect.x}, tile bottom={tile.rect.bottom}")
             elif player.direction.y > 0:
+                collided_y = True
                 player.rect.bottom = tile.rect.top
                 player.direction.y = 0
                 self.on_ground = True

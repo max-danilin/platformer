@@ -44,6 +44,10 @@ def get_img(img_dir, states):
     :param img_dir: image directory
     :return:
     """
+    if isinstance(states, dict) or isinstance(states, tuple) or isinstance(states, list):
+        pass
+    else:
+        raise TypeError("States should be dictionary, tuple or list.")
     new_states = dict()
     for state in states:
         new_states[state] = []
@@ -62,11 +66,22 @@ def load_flipped(states):
     :param states: dict with states and images
     :return:
     """
+    if isinstance(states, dict):
+        pass
+    else:
+        raise TypeError("States should be dictionary.")
     flipped = dict()
     for key, value in states.items():
         flipped[key] = []
+        if isinstance(value, list):
+            pass
+        else:
+            raise TypeError("States should contain list as values.")
         for item in value:
-            flip = pygame.transform.flip(item, True, False)
+            try:
+                flip = pygame.transform.flip(item, True, False)
+            except TypeError:
+                raise TypeError(f"{item} should be surface object, not {type(item)}")
             flipped[key].append(flip)
     return flipped
 

@@ -63,10 +63,8 @@ class Overworld:
         Function for creating brick levels from dictionary level_bricks and adding them to sprite group.
         :return:
         """
-        level_bricks_list = []
         for level in level_bricks:
             level_brick = LevelBrick(**level_bricks[level])
-            level_bricks_list.append(level_brick)
             self.brick_levels.add(level_brick)
 
     def create_player(self):
@@ -88,12 +86,15 @@ class Overworld:
     def check_available(self):
         """
         Function to get brick levels and their central points, available at the moment. Sorted by X coordinate
-        :return: last available brick
         """
+        ava_points = []
+        ava_bricks = []
         for brick in self.brick_levels.sprites():
             if brick.activate:
-                self.ava_bricks.append(brick)
-                self.ava_points.append(brick.rect.center)
+                ava_bricks.append(brick)
+                ava_points.append(brick.rect.center)
+        self.ava_points = ava_points
+        self.ava_bricks = ava_bricks
         self.ava_bricks = sorted(self.ava_bricks, key=lambda item: item.rect.x)
 
     @staticmethod
@@ -117,12 +118,9 @@ class Overworld:
         """
         x = player.rect.centerx
         point = namedtuple("Point", "x, y")
-        if x in range(self.points[0][0], self.points[1][0]):
-            player.rect.centery = self.line_equation(x, point(*self.points[0]), point(*self.points[1]))
-        elif x in range(self.points[1][0], self.points[2][0]):
-            player.rect.centery = self.line_equation(x, point(*self.points[1]), point(*self.points[2]))
-        elif x in range(self.points[2][0], self.points[3][0]):
-            player.rect.centery = self.line_equation(x, point(*self.points[2]), point(*self.points[3]))
+        for i in range(len(self.points)-1):
+            if x in range(self.points[i][0], self.points[i+1][0]):
+                player.rect.centery = self.line_equation(x, point(*self.points[i]), point(*self.points[i+1]))
 
     def set_player(self, player):
         """
@@ -231,7 +229,8 @@ class Overworld:
         :return:
         """
         pygame.draw.lines(self.surface, 'black', False, self.points, 10)
-        pygame.draw.lines(self.surface, 'red', False, self.ava_points, 10)
+        if len(self.ava_points) > 1:
+            pygame.draw.lines(self.surface, 'red', False, self.ava_points, 10)
 
     def draw_overworld(self):
         """

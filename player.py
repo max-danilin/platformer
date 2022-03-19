@@ -11,6 +11,10 @@ if not os.path.exists(PLAYER_IMAGES_DIR):
     refactor_image(54, 60, glob.glob('img/*.png'), ('idle', 'jump', 'run'), PLAYER_IMAGES_DIR)
 
 
+class PlayerCreationError(Exception):
+    pass
+
+
 class Player(pygame.sprite.Sprite):
     """
     Class for player object
@@ -25,8 +29,8 @@ class Player(pygame.sprite.Sprite):
         super().__init__()
 
         # Processing images
-        self.all_states = ('idle', "jump", "run")
-        self.state = "idle"
+        self.all_states = ALL_STATES
+        self.state = self.all_states[0]
         self.prev_state = ""
         self.states = get_img(PLAYER_IMAGES_DIR, self.all_states)
         self.flipped = load_flipped(self.states)
@@ -45,8 +49,8 @@ class Player(pygame.sprite.Sprite):
 
         # Player internal parameters
         self.last_hit = pygame.time.get_ticks()
-        self.max_lives = 5
-        self.lives = 5
+        self.max_lives = PLAYER_MAX_LIVES
+        self.lives = self.max_lives
         self.coins = 0
         self.levels_completed = 0
         self.enemies_killed = 0
@@ -60,6 +64,25 @@ class Player(pygame.sprite.Sprite):
         self.frame_index = 0
         self.animation_speed = ANIMATION_SPEED
         self.moving_right = True
+        self.check_parameters()
+
+    def check_parameters(self):
+        """
+        Checks if player was created correctly
+        :return:
+        """
+        if not isinstance(self.animation_speed, int) and not isinstance(self.animation_speed, float):
+            raise PlayerCreationError(f'Animation speed should be a number, not {type(self.animation_speed)}')
+        if not isinstance(self.blinks, int) and not isinstance(self.blinks, float):
+            raise PlayerCreationError(f'Blinks number should be a number, not {type(self.blinks)}')
+        if not isinstance(self.jump_speed, int) and not isinstance(self.jump_speed, float):
+            raise PlayerCreationError(f'Jump speed should be a number, not {type(self.jump_speed)}')
+        if not isinstance(self.all_states, tuple) or len(self.all_states) == 0:
+            raise PlayerCreationError("Should provide proper states.")
+        if self.max_lives <= 0:
+            raise PlayerCreationError("Player's max hp cannot be 0 or under")
+        if self.speed.x < 0:
+            raise PlayerCreationError("Speed x can't be negative")
 
     def get_inputs(self):
         """

@@ -2,12 +2,12 @@ import glob
 import os
 import unittest
 from shutil import rmtree
-from unittest.mock import patch, Mock
+from unittest.mock import patch, Mock, DEFAULT
 
 import pygame
 
 from maker import refactor_image
-from player import Player
+from player import Player, PlayerCreationError
 from settings import *
 
 
@@ -34,6 +34,22 @@ class TestPlayer(unittest.TestCase):
         self.assertEqual(self.player.direction.x, 0)
         self.assertEqual(len(self.player.states['idle']), 10)
         self.assertEqual(len(self.player.flipped['run']), 10)
+        self.player.max_lives = -2
+        self.assertRaises(PlayerCreationError, self.player.check_parameters)
+        m = Mock()
+        mock = Mock(get_rect=m)
+        m.return_value = pygame.Rect(1, 1, 1, 1)
+        with patch.multiple('player', get_img=Mock(return_value={'r': [mock]}), load_flipped=DEFAULT):
+            with patch('player.ALL_STATES', 'run'):
+                self.assertRaises(PlayerCreationError, Player, (0, 0))
+        with patch('player.JUMP_SPEED', 'run'):
+            self.assertRaises(PlayerCreationError, Player, (0, 0))
+        with patch('player.PLAYER_SPEED', -2):
+            self.assertRaises(PlayerCreationError, Player, (0, 0))
+        with patch('player.ANIMATION_SPEED', 'run'):
+            self.assertRaises(PlayerCreationError, Player, (0, 0))
+        with patch('player.BLINKING_DURATION', 'run'):
+            self.assertRaises(PlayerCreationError, Player, (0, 0))
 
     def test_moving(self):
         mocked_keys = {pygame.K_LEFT: True, pygame.K_RIGHT: False, pygame.K_UP: True}
@@ -56,7 +72,7 @@ class TestPlayer(unittest.TestCase):
         self.player.prev_state = "idle"
         self.player.update()
 
-        self.assertEqual(self.player.frame_index, 0.15)
+        self.assertEqual(self.player.frame_index, ANIMATION_SPEED)
         self.player.frame_index = 1
         self.player.update()
 
@@ -91,6 +107,10 @@ class TestPlayer(unittest.TestCase):
         self.assertEqual(self.player.states['idle'][0].get_alpha(), 255)
         self.assertEqual(self.player.blinks, 2)
         self.assertEqual(self.player.image.get_alpha(), 255)
+
+    def tearDown(self):
+        pygame.display.quit()
+        pygame.mixer.quit()
 
 
 if __name__ == '__main__':

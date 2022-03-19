@@ -16,9 +16,8 @@ class Particle(pygame.sprite.Sprite):
         """
         super().__init__()
         # Images managing
-        self.states = {"land": [], "jump": [], "run": [], "explosion": []}
         self.state = state
-        self.prev_state = ""
+        self.states = {self.state: []}
         self.states = get_img(PARTICLE_IMAGES_DIR, self.states)
         self.flipped = load_flipped(self.states)
         self.flipped_flag = flipped
@@ -29,6 +28,8 @@ class Particle(pygame.sprite.Sprite):
         # Animation parameters
         self.frame_index = 0
         self.animation_speed = ANIMATION_SPEED
+        if not isinstance(self.animation_speed, int) and not isinstance(self.animation_speed, float):
+            raise TypeError(f'Animation speed should be a number, not {type(self.animation_speed)}')
 
     def animate(self):
         """
@@ -40,8 +41,6 @@ class Particle(pygame.sprite.Sprite):
             self.frame_index = 0
             if self.state != 'run':
                 self.kill()
-        if self.state != self.prev_state:
-            self.frame_index = 0
         self.image = self.states[self.state][int(self.frame_index)]
 
     def update(self, x_shift):
@@ -58,7 +57,6 @@ class Particle(pygame.sprite.Sprite):
 
         if self.flipped_flag:
             self.image = self.flipped[self.state][int(self.frame_index)]
-        self.prev_state = self.state
 
         if self.state != "run":
             self.rect.x += x_shift

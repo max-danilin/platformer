@@ -21,24 +21,32 @@ class UI:
 
         # Health bar
         self.health_img = pygame.image.load(UI_HB_DIR).convert_alpha()
-        self.hb_start = (74, 49)
+        self.hb_start = HELTH_BAR_POS
         self.hb_width = 152
         self.hb_height = 4
-        self.hp_color = "red"
+        self.hp_color = HEALTH_BAR_COLOR
 
         # Font
         pygame.font.init()
         self.font = pygame.font.Font(UI_FONT_DIR, 30)
+        self.check_parameters()
+
+    def check_parameters(self):
+        if not isinstance(self.hb_start, tuple) and not isinstance(self.hb_start, list):
+            raise TypeError(f'Health bar positions should be tuple or list, not {type(self.hb_start)}')
 
     def get_current_hp(self):
         """
         Determine ration for remaining health of the player and drawing corresponding rect.
         :return:
         """
-        ratio = self.player.lives / self.player.max_lives
+        if self.player.lives > self.player.max_lives:
+            ratio = 1
+        else:
+            ratio = self.player.lives / self.player.max_lives
         width = ratio * self.hb_width
         hb_rect = pygame.Rect(self.hb_start, (width, self.hb_height))
-        pygame.draw.rect(self.surface, self.hp_color, hb_rect)
+        return hb_rect
 
     def draw(self):
         """
@@ -54,4 +62,4 @@ class UI:
         self.surface.blit(self.coin_img, self.coin_rect)
         self.surface.blit(self.health_img, (40, 20))
 
-        self.get_current_hp()
+        pygame.draw.rect(self.surface, self.hp_color, self.get_current_hp())
