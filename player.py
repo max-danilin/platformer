@@ -19,7 +19,7 @@ class Player(pygame.sprite.Sprite):
     """
     Class for player object
     """
-    def __init__(self, pos):
+    def __init__(self, pos, neat=False):
         """
         states - dict that contains images for different states of the player
         exact x and y - rounded up coordinates for collision detection
@@ -48,13 +48,15 @@ class Player(pygame.sprite.Sprite):
         self.jump_speed = JUMP_SPEED
 
         # Player internal parameters
+        self.neat = neat
         self.last_hit = pygame.time.get_ticks()
-        self.max_lives = PLAYER_MAX_LIVES
-        self.lives = self.max_lives
+        self.max_lives = PLAYER_MAX_LIVES if not self.neat else 1
+        self.lives = self.max_lives if not self.neat else 1
         self.coins = 0
         self.levels_completed = 0
         self.enemies_killed = 0
         self.blinks = BLINKING_DURATION
+        self.keys = None
 
         # Sound
         self.jump_sound = pygame.mixer.Sound(JUMP_SOUND_DIR)
@@ -89,11 +91,10 @@ class Player(pygame.sprite.Sprite):
         Method for getting inputs for moving right or left.
         :return:
         """
-        keys = pygame.key.get_pressed()
-        if keys[pygame.K_LEFT]:
+        if self.keys.get('left'):
             self.direction.x = -1
             self.moving_right = False
-        elif keys[pygame.K_RIGHT]:
+        elif self.keys.get('right'):
             self.direction.x = 1
             self.moving_right = True
         else:
@@ -122,6 +123,32 @@ class Player(pygame.sprite.Sprite):
         if not self.moving_right:
             self.image = self.flipped[self.state][int(self.frame_index)]
 
+    @staticmethod
+    def keys_encoding(keys):
+        """
+        Encode keys dictionary to match with used in neat implementation
+        :param keys: keys from pygame
+        :return: modified keys dict
+        """
+        new_keys = dict()
+        new_keys['left'] = keys[pygame.K_LEFT]
+        new_keys['right'] = keys[pygame.K_RIGHT]
+        new_keys['up'] = keys[pygame.K_UP]
+        return new_keys
+
+    def get_keys(self, neat=False, keys=None):
+        """
+        Get keys from Level. Either from pygame keys or neat ai
+        :param neat: cheks if game is running in ai mode
+        :param keys: keys from neat
+        :return:
+        """
+        if neat:
+            self.keys = keys
+        else:
+            self.keys = pygame.key.get_pressed()
+            self.keys = self.keys_encoding(self.keys)
+
     def update(self):
         """
         Method for updating player's position and animation.
@@ -132,7 +159,6 @@ class Player(pygame.sprite.Sprite):
         We save speed in order to implement camera movement aka level's world shift.
         :return:
         """
-
         self.get_inputs()
         self.if_blinked()
 
@@ -162,7 +188,6 @@ class Player(pygame.sprite.Sprite):
         This method needs to be implemented separately because jumping can occur only while on ground.
         :return:
         """
-        keys = pygame.key.get_pressed()
-        if keys[pygame.K_UP]:
+        if self.keys.get('up'):
             self.direction.y = self.jump_speed
             self.jump_sound.play()

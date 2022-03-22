@@ -58,6 +58,10 @@ GAMEOVER_SOUND_DIR = "audio/GameOver.wav"
 HASH_KEY = "maxd"
 HIGHSCORES_DIR = "highscore.dat"
 
+# NEAT
+FOV_DISTANCE = 5
+LEFT_FOV_ADJUSTMENT = 2
+
 BACKGROUND_MUSIC_CHANNEL = 0
 
 # Tiles data for levels

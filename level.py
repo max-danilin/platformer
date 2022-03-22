@@ -7,6 +7,7 @@ import utils
 from decoration import Sky, Water, Clouds
 from endgame import EndGame
 from types import GeneratorType
+import numpy
 
 # Logging
 log = logging.getLogger("platform")
@@ -26,7 +27,7 @@ class Level:
     Class for creating, adjusting and processing level of the game.
     """
 
-    def __init__(self, level_data, surface, player, ui):
+    def __init__(self, level_data, surface, player, ui, neat=False):  # TODO Transfer on_ground and keys to player
         """
         world_shift - allows us to move camera when player reaches certain lines on the screen
         on_ground - checks whether player is on the ground
@@ -45,6 +46,7 @@ class Level:
         self.player = player
         self.ui = ui
         self.endgame = EndGame(self.surface, self.player)
+        self.neat = neat
 
         # Local level variables
         self.world_shift = 0
@@ -98,6 +100,12 @@ class Level:
         self.stomp_sound.set_volume(0.8)
         self.hit_sound = pygame.mixer.Sound(HIT_SOUND_DIR)
         self.level_music = pygame.mixer.Sound(LEVEL_MUSIC_DIR)
+
+        # Neat
+        self.keys = {'right': False, 'left': False, 'up': False}
+        self.tiles_neat = [self.terrain_tiles, self.enemy_tiles, self.objects_tiles, self.tree_obs]
+        self.player_prev_pos = 100
+        self.shifted = 0
 
     @staticmethod
     def load_img(path_dict):
@@ -256,6 +264,7 @@ class Level:
         :return:
         """
         if self.on_ground:
+            player.get_keys(neat=self.neat, keys=self.keys)
             player.jump()
 
     def goto_endscore(self):
@@ -273,8 +282,10 @@ class Level:
         :param player: player object
         :return:
         """
-        if player.rect.y > screen_height or player.lives <= 0:
+        if player.rect.y >= screen_height or player.lives <= 0:
             return True
+        else:
+            return False
 
     def tree_collision(self, player, trees):
         """
@@ -406,11 +417,12 @@ class Level:
         :param player:
         :return:
         """
-        keys = pygame.key.get_pressed()
-        if keys[pygame.K_BACKSPACE]:
-            self.back_to_menu = True
-            self.postponed = True
-            self.pps = self.save_player(player)
+        if not self.neat:
+            keys = pygame.key.get_pressed()
+            if keys[pygame.K_BACKSPACE]:
+                self.back_to_menu = True
+                self.postponed = True
+                self.pps = self.save_player(player)
 
     def restore_player(self, player):
         """
@@ -419,8 +431,9 @@ class Level:
         :return:
         """
         if self.postponed:
-            (player.rect.x, player.rect.y), (player.direction.x, player.direction.y), (
-                player.speed.x, player.speed.y) = self.pps
+            if not self.neat:
+                (player.rect.x, player.rect.y), (player.direction.x, player.direction.y), (
+                    player.speed.x, player.speed.y) = self.pps
             self.postponed = False
 
     def collision_x_handler(self, player, tiles):
@@ -565,6 +578,118 @@ class Level:
         if self.postponed:
             pygame.mixer.Channel(BACKGROUND_MUSIC_CHANNEL).play(self.level_music, loops=-1)
 
+    # Neat functions
+    ############################
+
+    def fov(self, player):
+        """
+        Determines field of view for ai of a player. We set up a 2 dimensional array for FOV_DISTANCE *
+        (screen_height - 1) squares and fill it with values based on what type of tile is located inside this square.
+        We start filling based on player's x position ang go on for FOV_DISTANCE squares (square consists of
+        tile size * tile size pixels).
+        We make distinctions between these objects:
+        0 - no tile
+        1 - terrain tile
+        2 - tree obstacles (have to distinct them from terrain, because their collision works different)
+        3 - objects like coins
+        4 - player itself (might try not inserting it into array)
+        -1 - enemy tiles
+        It might be useful to try different ways of detecting enemies and player inside the square, like based on
+        X position or central position or even trying to let enemy fill all the squares where it was detected.
+        we also might try to spread FOV to the left of the player since it can move towards that direction by
+        changing LEFT_FOV_ADJUSTMENT value. REMINDER: in doing you you should also change input value in
+        config.txt to 10 * LEFT_FOV_ADJUSTMENT.
+        :param player:
+        :return: fov 2d array
+        """
+        pl_x = int((player.rect.x + player.speed.x + 1) // tile_size)
+        pl_y = int(player.rect.y // tile_size) - 1
+        fov_array = numpy.empty(((screen_height // tile_size) - 1, FOV_DISTANCE + LEFT_FOV_ADJUSTMENT))
+        column = 0
+        for x in range((pl_x - LEFT_FOV_ADJUSTMENT) * tile_size, (pl_x + FOV_DISTANCE) * tile_size, tile_size):
+            row = 0
+            for y in range(tile_size, screen_height, tile_size):
+                tile_found = False
+                for tile_type in self.tiles_neat:
+                    for tile in tile_type.sprites():
+                        if tile.rect.x in range(x, x + tile_size) and tile.rect.y in range(y, y + tile_size):
+                            if tile_type is self.terrain_tiles:
+                                fov_array[row][column] = 1
+                                tile_found = True
+                            elif tile_type is self.tree_obs:
+                                fov_array[row][column] = 2
+                                tile_found = True
+                            elif tile_type is self.enemy_tiles:
+                                fov_array[row][column] = -1
+                                tile_found = True
+                            elif tile_type is self.objects_tiles:
+                                fov_array[row][column] = 3
+                                tile_found = True
+                if not tile_found:
+                    fov_array[row][column] = 0
+                row += 1
+            column += 1
+        fov_array[pl_y][LEFT_FOV_ADJUSTMENT] = 4
+        # print(fov_array)
+        # print("----------------------")
+        return fov_array
+
+    # Number of functions to let ai move player
+
+    def move_right(self):
+        self.keys['right'] = True
+
+    def move_left(self):
+        self.keys['left'] = True
+
+    def move_up(self):
+        self.keys['up'] = True
+
+    def move_right_up(self):
+        self.keys['right'] = True
+        self.keys['up'] = True
+
+    def move_left_up(self):
+        self.keys['left'] = True
+        self.keys['up'] = True
+
+    def restore_keys(self):
+        """
+        Revert keys for new frame
+        :return:
+        """
+        self.keys['right'] = False
+        self.keys['left'] = False
+        self.keys['up'] = False
+
+    # def check_player_pos(self, player):
+    #     if player.rect.x in range(self.player_prev_pos-4, self.player_prev_pos+4): # == self.player_prev_pos:
+    #         stayed = True
+    #     else:
+    #         stayed = False
+    #     self.player_prev_pos = player.rect.x
+    #     return stayed
+
+    def distance_traveled(self, player):
+        """
+        Detects how much distance in the level player has moved
+        shifted - increases as player reaches edge of the screen
+        :param player:
+        :return:
+        """
+        self.shifted += -self.world_shift
+        return player.rect.x + self.shifted
+
+    def nparray_to_list(self):
+        """
+        Convert 2d array into list with multiple values for feeding to neural network as input
+        :return:
+        """
+        fv = self.fov(self.players.sprite)
+        return fv.reshape(-1).tolist()
+
+    ############################
+
     def draw_level(self):
         """
         Running level following these consecutive steps:
@@ -588,6 +713,7 @@ class Level:
         self.return_to_menu(self.players.sprite)
 
         # 2.
+        self.players.sprite.get_keys(neat=self.neat, keys=self.keys)
         self.players.update()
         for tile in self.all_tiles:
             tile.update(self.world_shift)
@@ -607,7 +733,7 @@ class Level:
         self.scroll_x(self.players.sprite)
 
         # 4.
-        self.check_defeat(self.players.sprite)
+        # self.check_defeat(self.players.sprite)
         self.check_state(self.players.sprite)
         self.particle_create(self.players.sprite)
         log.info("-------------")
@@ -619,12 +745,22 @@ class Level:
         self.players.draw(self.surface)
         self.ui.draw()
 
+        # fv = self.fov(self.players.sprite)
+        # print(len(fv))
+        # print(len(fv.reshape(-1).tolist())) # 50
+        # print(fv.reshape(-1), type(fv.reshape(-1).tolist()))
+        # print(fv)
+        # print("-----------")
+
     def run(self):
         """
         Function for running level if player's hasn't been defeated
         """
-        if self.check_defeat(self.players.sprite):
-            self.goto_endscore()
-        else:
+        if self.neat:
             self.draw_level()
+        else:
+            if self.check_defeat(self.players.sprite):
+                self.goto_endscore()
+            else:
+                self.draw_level()
 
