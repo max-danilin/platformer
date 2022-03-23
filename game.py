@@ -8,8 +8,8 @@ from level import Level
 from collections import deque
 import neat
 import pickle
-import level_old
 
+GEN = 0
 # TODO Maybe try data analysis based on ai behaviour
 
 
@@ -33,6 +33,10 @@ class Platformer:  # TODO Add initial screen with buttons
 
         pygame.mixer.Channel(BACKGROUND_MUSIC_CHANNEL).set_volume(0.05)
 
+        # Font
+        pygame.font.init()
+        self.font = pygame.font.SysFont('Arial', 30)
+
     @staticmethod
     def process_events():
         """
@@ -54,6 +58,30 @@ class Platformer:  # TODO Add initial screen with buttons
             distance = 0
         return distance ** 2 - frames ** 1.5 + score ** 1.5 + enemy_kills * 20 + min(max(distance - 20, 0), 1) * 2000 \
                + win * 10000 - defeat * 50
+
+    @staticmethod
+    def show_text(font, surface, generation, genome=None, fitness=None, dist=None):
+        """
+
+        :param dist:
+        :param genome:
+        :param generation:
+        :param fitness:
+        :param font: type of font
+        :param surface: surface of our game
+        :return:
+        """
+        surf_gener = font.render(f"Generation: {generation}", True, 'red')
+        surface.blit(surf_gener, (300, 30))
+        if genome is not None:
+            surf_genome = font.render(f"Genome: {genome}", True, 'red')
+            surface.blit(surf_genome, (500, 30))
+        if fitness is not None:
+            surf_fit = font.render(f"Fitness: {fitness}", True, 'red')
+            surface.blit(surf_fit, (700, 30))
+        if dist is not None:
+            surf_fit = font.render(f"Distance: {dist}", True, 'red')
+            surface.blit(surf_fit, (900, 30))
 
     def run(self):
         """
@@ -103,13 +131,15 @@ class Platformer:  # TODO Add initial screen with buttons
             pygame.display.update()
             self.clock.tick(60)
 
-    def train_ai(self, genome, config):
+    def train_ai(self, genome, config, genome_id):
+        global GEN
         net = neat.nn.FeedForwardNetwork.create(genome, config)
 
         player = Player((0, 0), neat=True)
         ui = UI(self.screen, player)
         l_neat = Level(level_0, self.screen, player, ui, neat=True)
         queue = deque(maxlen=200)
+        GEN += 1
 
         while True:
             for event in pygame.event.get():
@@ -124,13 +154,14 @@ class Platformer:  # TODO Add initial screen with buttons
                 player.enemies_killed, l_neat.check_defeat(player)
             )
 
+            self.show_text(self.font, self.screen, GEN, genome_id, round(fitness, 1), int(dist))
             queue.append(dist)
             if len(queue) == 200:
                 deq = queue
             else:
                 deq = deque([1, 100])
             if deq[-1] - deq[0] < 11 or l_neat.check_defeat(player) or fitness < -10 or l_neat.completed:
-                print("Fitness:", round(fitness, 1))
+                # print("Fitness:", round(fitness, 1))
                 genome.fitness += fitness  # Maybe decrease fitness if staggering?
                 break
 
@@ -157,10 +188,12 @@ class Platformer:  # TODO Add initial screen with buttons
         return False
 
     def train_ai_multiple(self, genomes, config):
+        global GEN
         players = []
         nets = []
         ge = []
         queues = []
+        GEN += 1
 
         for g_id, g in genomes:
             g.fitness = 0
@@ -180,6 +213,7 @@ class Platformer:  # TODO Add initial screen with buttons
 
             self.screen.fill('grey')
             l_neat.run()
+            self.show_text(self.font, self.screen, GEN)
 
             for index, (player, genome, queue, net) in enumerate(zip(players, ge, queues, nets)):
                 dist = l_neat.distance_traveled(player)
@@ -195,7 +229,6 @@ class Platformer:  # TODO Add initial screen with buttons
                     deq = deque([1, 100])
                 if deq[-1] - deq[0] < 11 or l_neat.check_defeat(player) or fitness < -10 or l_neat.completed:
                     print("Fitness:", round(fitness, 1))
-                    print(dist)
                     genome.fitness += fitness  # Maybe decrease fitness if staggering?
                     players.pop(index)
                     ge.pop(index)
@@ -230,7 +263,7 @@ class Platformer:  # TODO Add initial screen with buttons
         return False
 
 
-def eval_genomes_multiple(genomes, config):
+def eval_genomes_multiple(genomes, config):  # TODO Refactor as class
     game = Platformer()
     force_quit = game.train_ai_multiple(genomes, config)
     if force_quit:
@@ -241,7 +274,7 @@ def eval_genomes(genomes, config):
     for genome_id, genome in genomes:
         genome.fitness = 0
         game = Platformer()
-        force_quit = game.train_ai(genome, config)
+        force_quit = game.train_ai(genome, config, genome_id)
         if force_quit:
             quit()
 
