@@ -27,7 +27,7 @@ class Level:
     Class for creating, adjusting and processing level of the game.
     """
 
-    def __init__(self, level_data, surface, player, ui, neat=False):  # TODO Transfer on_ground and keys to player
+    def __init__(self, level_data, surface, player, ui, neat=False):
         """
         world_shift - allows us to move camera when player reaches certain lines on the screen
         on_ground - checks whether player is on the ground
@@ -54,7 +54,6 @@ class Level:
         self.level_width = 0
 
         # Flags
-        self.on_ground = False
         self.completed = False
         self.back_to_menu = False
         self.postponed = True
@@ -102,7 +101,6 @@ class Level:
         self.level_music = pygame.mixer.Sound(LEVEL_MUSIC_DIR)
 
         # Neat
-        self.keys = {'right': False, 'left': False, 'up': False}
         self.tiles_neat = [self.terrain_tiles, self.enemy_tiles, self.objects_tiles, self.tree_obs]
         self.player_prev_pos = 100
         self.shifted = 0
@@ -263,8 +261,8 @@ class Level:
         :param player: player's sprite
         :return:
         """
-        if self.on_ground:
-            player.get_keys(neat=self.neat, keys=self.keys)
+        if player.on_ground:
+            player.get_keys(neat=self.neat)
             player.jump()
 
     def goto_endscore(self):
@@ -318,7 +316,7 @@ class Level:
                 collided_y = True
                 player.rect.bottom = tree.rect.top
                 player.direction.y = 0
-                self.on_ground = True
+                player.on_ground = True
         player.rect.y = saving_position if not collided_y else player.rect.y
 
     def objects_collision(self, player, objects):
@@ -436,7 +434,8 @@ class Level:
                     player.speed.x, player.speed.y) = self.pps
             self.postponed = False
 
-    def collision_x_handler(self, player, tiles):
+    @staticmethod
+    def collision_x_handler(player, tiles):
         """
         Method for handling collisions along X axis
         We use collision tolerance in order to check from which side collision occurs
@@ -467,7 +466,8 @@ class Level:
                           f" tile left={tile.rect.right}, tile y={tile.rect.y}")
         player.rect.x = saving_position if not collided_x else player.rect.x
 
-    def collision_y_handler(self, player, tiles):
+    @staticmethod
+    def collision_y_handler(player, tiles):
         """
         Method for handling collisions along Y axis (see method for X collisions)
         We use collision tolerance to process collisions happening because of jumping,
@@ -478,7 +478,7 @@ class Level:
         :return:
         """
         collision_tolerance = abs(player.jump_speed) + 1
-        self.on_ground = False
+        player.on_ground = False
 
         saving_position = player.rect.y
         collided_y = False
@@ -497,25 +497,26 @@ class Level:
                 collided_y = True
                 player.rect.bottom = tile.rect.top
                 player.direction.y = 0
-                self.on_ground = True
+                player.on_ground = True
                 log.debug(f"COLLIDE Y: player x={player.rect.x}, player bottom={player.rect.bottom};"
                           f" tile x={tile.rect.x}, tile top={tile.rect.top}")
         player.rect.y = saving_position if not collided_y else player.rect.y
 
-    def check_state(self, player):
+    @staticmethod
+    def check_state(player):
         """
         Method for determining player's state for correct animations.
         :param player: player's sprite
         :return:
         """
-        if player.direction.x == 0 and self.on_ground:
+        if player.direction.x == 0 and player.on_ground:
             player.state = "idle"
-        elif player.direction.x != 0 and self.on_ground:
+        elif player.direction.x != 0 and player.on_ground:
             player.state = "run"
         else:
             player.state = "jump"
         log.info(f"State = {player.state}, direction x = {player.direction.x}, direction y = {player.direction.y},"
-                 f" rect y = {player.rect.y}, rect x = {player.rect.x}, on ground = {self.on_ground}")
+                 f" rect y = {player.rect.y}, rect x = {player.rect.x}, on ground = {player.on_ground}")
 
     def particle_create(self, player):
         """
@@ -529,7 +530,7 @@ class Level:
             jump_particle = Particle(player.rect.bottomleft - particle_offset, 'jump')
             self.particles.add(jump_particle)
             log.debug(f"Jump particle created {jump_particle.rect.x}, {jump_particle.rect.y}")
-        elif player.prev_state == "jump" and self.on_ground:
+        elif player.prev_state == "jump" and player.on_ground:
             particle_offset = pygame.math.Vector2(20, 40)
             landing_particle = Particle(player.rect.bottomleft - particle_offset, 'land')
             self.particles.add(landing_particle)
@@ -634,34 +635,6 @@ class Level:
         # print("----------------------")
         return fov_array
 
-    # Number of functions to let ai move player
-
-    def move_right(self):
-        self.keys['right'] = True
-
-    def move_left(self):
-        self.keys['left'] = True
-
-    def move_up(self):
-        self.keys['up'] = True
-
-    def move_right_up(self):
-        self.keys['right'] = True
-        self.keys['up'] = True
-
-    def move_left_up(self):
-        self.keys['left'] = True
-        self.keys['up'] = True
-
-    def restore_keys(self):
-        """
-        Revert keys for new frame
-        :return:
-        """
-        self.keys['right'] = False
-        self.keys['left'] = False
-        self.keys['up'] = False
-
     # def check_player_pos(self, player):
     #     if player.rect.x in range(self.player_prev_pos-4, self.player_prev_pos+4): # == self.player_prev_pos:
     #         stayed = True
@@ -680,12 +653,12 @@ class Level:
         self.shifted += -self.world_shift
         return player.rect.x + self.shifted
 
-    def nparray_to_list(self):
+    def nparray_to_list(self, player):
         """
         Convert 2d array into list with multiple values for feeding to neural network as input
         :return:
         """
-        fv = self.fov(self.players.sprite)
+        fv = self.fov(player)
         return fv.reshape(-1).tolist()
 
     ############################
@@ -713,7 +686,7 @@ class Level:
         self.return_to_menu(self.players.sprite)
 
         # 2.
-        self.players.sprite.get_keys(neat=self.neat, keys=self.keys)
+        self.players.sprite.get_keys(neat=self.neat)
         self.players.update()
         for tile in self.all_tiles:
             tile.update(self.world_shift)

@@ -132,21 +132,21 @@ class Platformer:  # TODO Add initial screen with buttons
                 genome.fitness += fitness  # Maybe decrease fitness if staggering?
                 break
 
-            output = net.activate(l_neat.nparray_to_list())  # Maybe try bigger fov
+            output = net.activate(l_neat.nparray_to_list(player))  # Maybe try bigger fov
             decision = output.index(max(output))
 
             if decision == 0:
                 pass
             elif decision == 1:
-                l_neat.move_up()
+                player.move_up()
             elif decision == 2:
-                l_neat.move_right()
+                player.move_right()
             elif decision == 3:
-                l_neat.move_left()
+                player.move_left()
             elif decision == 4:
-                l_neat.move_right_up()
+                player.move_right_up()
             elif decision == 5:
-                l_neat.move_left_up()
+                player.move_left_up()
 
             pygame.display.update()
             self.clock.tick(60)
@@ -165,7 +165,7 @@ def eval_genomes(genomes, config):
 
 
 def run_neat(config):
-    # p = neat.Checkpointer.restore_checkpoint('neat-checkpoint-8')
+    # p = neat.Checkpointer.restore_checkpoint('neat-checkpoint-25')
     p = neat.Population(config)
     p.add_reporter(neat.StdOutReporter(True))
     stats = neat.StatisticsReporter()

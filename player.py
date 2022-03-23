@@ -56,7 +56,8 @@ class Player(pygame.sprite.Sprite):
         self.levels_completed = 0
         self.enemies_killed = 0
         self.blinks = BLINKING_DURATION
-        self.keys = None
+        self.keys = {'right': False, 'left': False, 'up': False}
+        self.on_ground = False
 
         # Sound
         self.jump_sound = pygame.mixer.Sound(JUMP_SOUND_DIR)
@@ -136,16 +137,14 @@ class Player(pygame.sprite.Sprite):
         new_keys['up'] = keys[pygame.K_UP]
         return new_keys
 
-    def get_keys(self, neat=False, keys=None):
+    def get_keys(self, neat=False):
         """
         Get keys from Level. Either from pygame keys or neat ai
         :param neat: cheks if game is running in ai mode
         :param keys: keys from neat
         :return:
         """
-        if neat:
-            self.keys = keys
-        else:
+        if not neat:
             self.keys = pygame.key.get_pressed()
             self.keys = self.keys_encoding(self.keys)
 
@@ -171,6 +170,7 @@ class Player(pygame.sprite.Sprite):
         self.prev_state = self.state
         self.speed.x = self.shift_speed
         self.blinking()
+        self.restore_keys()
 
     def blinking(self):
         """
@@ -191,3 +191,31 @@ class Player(pygame.sprite.Sprite):
         if self.keys.get('up'):
             self.direction.y = self.jump_speed
             self.jump_sound.play()
+
+    # Number of functions to let ai move player
+
+    def move_right(self):
+        self.keys['right'] = True
+
+    def move_left(self):
+        self.keys['left'] = True
+
+    def move_up(self):
+        self.keys['up'] = True
+
+    def move_right_up(self):
+        self.keys['right'] = True
+        self.keys['up'] = True
+
+    def move_left_up(self):
+        self.keys['left'] = True
+        self.keys['up'] = True
+
+    def restore_keys(self):
+        """
+        Revert keys for new frame
+        :return:
+        """
+        self.keys['right'] = False
+        self.keys['left'] = False
+        self.keys['up'] = False

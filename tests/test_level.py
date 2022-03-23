@@ -152,11 +152,11 @@ class TestLevel(unittest.TestCase):
             # self.level.tree_collision = Mock(side_effect=self.level.tree_collision)
             self.level.tree_collision(self.player, self.level.tree_obs)
             wt.assert_called()
-            self.assertTrue(self.level.on_ground)
+            self.assertTrue(self.player.on_ground)
             self.assertEqual(self.player.rect.bottom, 256)
             self.assertEqual(self.player.direction.y, 0)
 
-        self.level.on_ground = False
+        self.player.on_ground = False
         # Colliding from below
         self.player.rect.top = 260
         self.player.rect.right = 360
@@ -174,11 +174,11 @@ class TestLevel(unittest.TestCase):
         self.player.direction.y = 10
         self.player.update()
         self.level.tree_collision(self.player, self.level.tree_obs)
-        self.assertTrue(self.level.on_ground)
+        self.assertTrue(self.player.on_ground)
         self.assertEqual(self.player.rect.bottom, 256)
         self.assertEqual(self.player.direction.y, 0)
 
-        self.level.on_ground = False
+        self.player.on_ground = False
 
         # Edge 2
         self.player.rect.bottom = 256
@@ -186,11 +186,11 @@ class TestLevel(unittest.TestCase):
         self.player.direction.y = 10
         self.player.update()
         self.level.tree_collision(self.player, self.level.tree_obs)
-        self.assertTrue(self.level.on_ground)
+        self.assertTrue(self.player.on_ground)
         self.assertEqual(self.player.rect.bottom, 256)
         self.assertEqual(self.player.direction.y, 0)
 
-        self.level.on_ground = False
+        self.player.on_ground = False
         # Colliding from side
         self.player.rect.top = 440
         self.player.rect.left = 3198
@@ -327,7 +327,7 @@ class TestLevel(unittest.TestCase):
     def test_collision(self):
         # Tiles 832, 192/ 896, 192/768, 192
         # Colliding from atop
-        self.level.on_ground = False
+        self.player.on_ground = False
         self.player.rect.bottom = 190
         self.player.rect.left = 830
         self.player.direction.y = 10
@@ -341,13 +341,13 @@ class TestLevel(unittest.TestCase):
         self.level.particle_create(self.player)
         self.assertEqual(len(self.level.particles.sprites()), 1)
         self.assertEqual(self.level.particles.sprites()[0].state, 'land')
-        self.assertEqual(self.level.on_ground, True)
+        self.assertEqual(self.player.on_ground, True)
         self.assertEqual(self.player.rect.bottom, 192)
         self.assertEqual(self.player.direction.y, 0)
         self.assertEqual(self.player.rect.left, 830)
 
         # Colliding from below
-        self.level.on_ground = False
+        self.player.on_ground = False
         self.player.rect.top = 260
         self.player.rect.left = 830
         self.player.direction.y = -10
@@ -359,39 +359,39 @@ class TestLevel(unittest.TestCase):
         self.assertEqual(self.level.particles.sprites()[1].state, 'jump')
         self.level.collision_x_handler(self.player, self.level.terrain_tiles)
         self.level.collision_y_handler(self.player, self.level.terrain_tiles)
-        self.assertEqual(self.level.on_ground, False)
+        self.assertEqual(self.player.on_ground, False)
         self.assertEqual(self.player.rect.top, 256)
         self.assertEqual(self.player.direction.y, 0)
         self.assertEqual(self.player.rect.left, 830)
 
         # Colliding from below Edge 1
-        self.level.on_ground = False
+        self.player.on_ground = False
         self.player.rect.top = 256
         self.player.rect.left = 830
         self.player.direction.y = -10
         self.player.update()
         self.level.collision_x_handler(self.player, self.level.terrain_tiles)
         self.level.collision_y_handler(self.player, self.level.terrain_tiles)
-        self.assertEqual(self.level.on_ground, False)
+        self.assertEqual(self.player.on_ground, False)
         self.assertEqual(self.player.rect.top, 256)
         self.assertEqual(self.player.direction.y, 0)
         self.assertEqual(self.player.rect.left, 830)
 
         # Colliding from below Edge 2
-        self.level.on_ground = False
+        self.player.on_ground = False
         self.player.rect.top = 265
         self.player.rect.left = 830
         self.player.direction.y = -10
         self.player.update()
         self.level.collision_x_handler(self.player, self.level.terrain_tiles)
         self.level.collision_y_handler(self.player, self.level.terrain_tiles)
-        self.assertEqual(self.level.on_ground, False)
+        self.assertEqual(self.player.on_ground, False)
         self.assertEqual(self.player.rect.top, 256)
         self.assertEqual(self.player.direction.y, 0)
         self.assertEqual(self.player.rect.left, 830)
 
         # Colliding from side Edge 1
-        self.level.on_ground = False
+        self.player.on_ground = False
         self.player.rect.top = 185
         self.player.rect.left = 896
         mocked_keys = {pygame.K_LEFT: True, pygame.K_RIGHT: False, pygame.K_UP: False}
@@ -400,12 +400,12 @@ class TestLevel(unittest.TestCase):
         self.level.collision_x_handler(self.player, self.level.terrain_tiles)
         self.level.collision_y_handler(self.player, self.level.terrain_tiles)
         self.assertEqual(self.player.direction.x, -1)
-        self.assertEqual(self.level.on_ground, False)
+        self.assertEqual(self.player.on_ground, False)
         self.assertEqual(self.player.rect.top, 185)
         self.assertEqual(self.player.rect.left, 896)
 
         # Colliding from side Edge 2
-        self.level.on_ground = False
+        self.player.on_ground = False
         self.player.rect.top = 185
         self.player.rect.left = 900
         mocked_keys = {pygame.K_LEFT: True, pygame.K_RIGHT: False, pygame.K_UP: False}
@@ -414,12 +414,12 @@ class TestLevel(unittest.TestCase):
         self.level.collision_x_handler(self.player, self.level.terrain_tiles)
         self.level.collision_y_handler(self.player, self.level.terrain_tiles)
         self.assertEqual(self.player.direction.x, -1)
-        self.assertEqual(self.level.on_ground, False)
+        self.assertEqual(self.player.on_ground, False)
         self.assertEqual(self.player.rect.top, 185)
         self.assertEqual(self.player.rect.left, 896)
 
         # Colliding diagonal 768, 192 X collision
-        self.level.on_ground = False
+        self.player.on_ground = False
         self.player.rect.top = 185
         self.player.rect.right = 765
         self.player.direction.y = 10
@@ -429,14 +429,14 @@ class TestLevel(unittest.TestCase):
         self.level.collision_x_handler(self.player, self.level.terrain_tiles)
         self.level.collision_y_handler(self.player, self.level.terrain_tiles)
         self.assertEqual(self.player.direction.x, 1)
-        self.assertEqual(self.level.on_ground, False)
+        self.assertEqual(self.player.on_ground, False)
         self.assertEqual(self.player.rect.top, 195)
         self.assertEqual(self.player.rect.right, 768)
         self.assertEqual(self.player.direction.y, 10)
 
         # Colliding diagonal 768, 192 no X collision
         self.player.state = 'jump'
-        self.level.on_ground = False
+        self.player.on_ground = False
         self.player.rect.top = 185
         self.player.rect.right = 769
         self.player.direction.y = 10
@@ -452,7 +452,7 @@ class TestLevel(unittest.TestCase):
         self.assertEqual(self.level.particles.sprites()[2].state, 'land')
         self.assertEqual(len(self.level.run_particles.sprites()), 1)
         self.assertEqual(self.player.direction.x, 1)
-        self.assertEqual(self.level.on_ground, True)
+        self.assertEqual(self.player.on_ground, True)
         self.assertEqual(self.player.rect.bottom, 192)
         self.assertEqual(self.player.rect.right, 774)
         self.assertEqual(self.player.direction.y, 0)
