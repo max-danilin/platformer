@@ -54,10 +54,10 @@ class TestPlayer(unittest.TestCase):
     def test_moving(self):
         mocked_keys = {pygame.K_LEFT: True, pygame.K_RIGHT: False, pygame.K_UP: True}
         with patch('player.pygame.key.get_pressed', return_value=mocked_keys):
-            self.player.get_inputs = Mock(side_effect=self.player.get_inputs)
+            self.player.get_keys = Mock(side_effect=self.player.get_keys)
             self.player.animate = Mock()
             self.player.update()
-            self.player.get_inputs.assert_called()
+            self.player.get_keys.assert_called()
 
             self.assertEqual(self.player.direction.x, -1)
             self.assertEqual(self.player.rect.x, -PLAYER_SPEED)

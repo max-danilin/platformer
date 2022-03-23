@@ -103,7 +103,7 @@ class Platformer:  # TODO Add initial screen with buttons
             pygame.display.update()
             self.clock.tick(60)
 
-    def train_ai(self, genome, config):  # TODO Try adding opportunity for creating multiple players simultaneously
+    def train_ai(self, genome, config):
         net = neat.nn.FeedForwardNetwork.create(genome, config)
 
         player = Player((0, 0), neat=True)
@@ -252,7 +252,7 @@ def run_neat(config):
     p.add_reporter(neat.StdOutReporter(True))
     stats = neat.StatisticsReporter()
     p.add_reporter(stats)
-    #p.add_reporter(neat.Checkpointer(1))
+    p.add_reporter(neat.Checkpointer(5))
 
     winner = p.run(eval_genomes, 50)
     # winner = p.run(eval_genomes_multiple, 500)
@@ -270,9 +270,9 @@ def test_neat(config):
 
 
 if __name__ == '__main__':
-    # config = neat.Config(neat.DefaultGenome, neat.DefaultReproduction,
-                         #neat.DefaultSpeciesSet, neat.DefaultStagnation, "config.txt")
-    # run_neat(config)
-    # test_neat(config)
-    game = Platformer()
-    game.run()
+    config = neat.Config(neat.DefaultGenome, neat.DefaultReproduction,
+                         neat.DefaultSpeciesSet, neat.DefaultStagnation, "config.txt")
+    run_neat(config)
+    test_neat(config)
+    # game = Platformer()
+    # game.run()

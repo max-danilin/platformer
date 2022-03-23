@@ -128,9 +128,9 @@ class TestLevel(unittest.TestCase):
         self.assertEqual(self.level.world_shift, -20)
 
     def test_gravity(self):
-        self.level.apply_gravity(5)
+        self.level.apply_gravity(5, self.player)
         self.assertEqual(self.player.direction.y, 5)
-        self.assertRaises(LevelError, self.level.apply_gravity, 'str')
+        self.assertRaises(LevelError, self.level.apply_gravity, 'str', self.player)
 
     def test_check_defeat(self):
         self.player.lives = 0

@@ -162,6 +162,7 @@ class Player(pygame.sprite.Sprite):
         :return:
         """
         self.get_keys(self.neat)
+
         self.get_inputs()
         self.if_blinked()
 
@@ -174,7 +175,8 @@ class Player(pygame.sprite.Sprite):
         self.prev_state = self.state
         self.speed.x = self.shift_speed
         self.blinking()
-        self.restore_keys()
+        if self.neat:
+            self.restore_keys()
 
     def blinking(self):
         """
