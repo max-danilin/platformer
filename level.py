@@ -27,7 +27,7 @@ class Level:
     Class for creating, adjusting and processing level of the game.
     """
 
-    def __init__(self, level_data, surface, player, ui, neat=False):
+    def __init__(self, level_data, surface, player, ui, neat=False, multiple_players=False):
         """
         world_shift - allows us to move camera when player reaches certain lines on the screen
         on_ground - checks whether player is on the ground
@@ -57,6 +57,7 @@ class Level:
         self.completed = False
         self.back_to_menu = False
         self.postponed = True
+        self.multiple_players = multiple_players
 
         # Particles
         self.particles = pygame.sprite.Group()
@@ -72,13 +73,16 @@ class Level:
         self.tree_obs = pygame.sprite.Group()
 
         # Player
-        self.players = pygame.sprite.GroupSingle()
+        if not self.multiple_players:
+            self.players = pygame.sprite.GroupSingle()
+        else:
+            self.players = pygame.sprite.Group()
 
         self.preloaded = Level.preload_images()
         [self.create_tile_group(key) for key in self.level_data]
 
-        # Save player's position
-        self.pps = self.save_player(self.players.sprite)
+        # # Save player's position
+        # self.pps = self.save_player(self.players.sprite)
 
         # Tile group for drawing
         self.all_tiles = [self.background_tiles, self.terrain_tiles, self.enemy_tiles, self.objects_tiles]
@@ -102,8 +106,10 @@ class Level:
 
         # Neat
         self.tiles_neat = [self.terrain_tiles, self.enemy_tiles, self.objects_tiles, self.tree_obs]
-        self.player_prev_pos = 100
-        self.shifted = 0
+        self.furthest_saved = None
+        self.furthest_changed = False
+        self.furthest = None
+        self.max_x = 0
 
     @staticmethod
     def load_img(path_dict):
@@ -174,8 +180,13 @@ class Level:
                             self.constrains.add(sprite)
                     if type_ == 'player':
                         if item == '0':
-                            self.player.rect.topleft = (x, y)
-                            self.players.add(self.player)
+                            if self.multiple_players:
+                                for player in self.player:
+                                    player.rect.topleft = (x, y)
+                                    self.players.add(player)
+                            else:
+                                self.player.rect.topleft = (x, y)
+                                self.players.add(self.player)
                         elif item == '1':
                             sprite = Tile(tile_size, (x, y))
                             self.level_end.add(sprite)
@@ -230,14 +241,15 @@ class Level:
         else:
             self.world_shift = 0
 
-    def apply_gravity(self, gravity):
+    @staticmethod
+    def apply_gravity(gravity, player):
         """
         Applying gravity onto player object
         :return: None
         """
         if not isinstance(gravity, int) and not isinstance(gravity, float):
             raise LevelError(f"Gravity should be number, not {type(gravity)}")
-        self.players.sprite.direction.y += gravity
+        player.direction.y += gravity
 
     @staticmethod
     def show_text(font, lives, coins, surface):
@@ -273,14 +285,15 @@ class Level:
         pygame.mixer.Channel(BACKGROUND_MUSIC_CHANNEL).stop()
         self.endgame.draw()
 
-    @staticmethod
-    def check_defeat(player):
+    def check_defeat(self, player):
         """
         Checks if player has fallen or has no lives left
         :param player: player object
         :return:
         """
         if player.rect.y >= screen_height or player.lives <= 0:
+            if self.multiple_players:
+                self.players.remove(player)
             return True
         else:
             return False
@@ -420,7 +433,7 @@ class Level:
             if keys[pygame.K_BACKSPACE]:
                 self.back_to_menu = True
                 self.postponed = True
-                self.pps = self.save_player(player)
+                player.pps = self.save_player(player)
 
     def restore_player(self, player):
         """
@@ -431,7 +444,7 @@ class Level:
         if self.postponed:
             if not self.neat:
                 (player.rect.x, player.rect.y), (player.direction.x, player.direction.y), (
-                    player.speed.x, player.speed.y) = self.pps
+                    player.speed.x, player.speed.y) = player.pps
             self.postponed = False
 
     @staticmethod
@@ -650,8 +663,8 @@ class Level:
         :param player:
         :return:
         """
-        self.shifted += -self.world_shift
-        return player.rect.x + self.shifted
+        player.shifted += -self.world_shift
+        return player.rect.x + player.shifted
 
     def nparray_to_list(self, player):
         """
@@ -662,6 +675,94 @@ class Level:
         return fv.reshape(-1).tolist()
 
     ############################
+
+    def remove_player(self, player):
+        self.players.remove(player)
+
+    def get_futher(self, players):
+        self.furthest = sorted(players, key=lambda player: player.rect.x, reverse=True)[0]
+        #print("X:", self.furthest.rect.x, "World shift:", self.world_shift, "Self shift:", self.furthest.shifted)
+        if self.furthest is self.furthest_saved:
+            self.furthest_changed = False
+            self.max_x = self.furthest_saved.rect.x
+            #print("Not changed", self.max_x)
+        else:
+            self.furthest_changed = True
+            self.revert_camera()
+        self.furthest_saved = self.furthest
+
+    def revert_camera(self):
+        dist = self.furthest.rect.x
+        #print("Changed", dist)
+        self.world_shift = self.max_x - dist
+
+    def move_other(self, players):
+        for player in players:
+            if player is self.furthest:
+                pass
+            else:
+                player.rect.x += self.world_shift
+
+    def draw_multiple(self):
+        """
+        Running level following these consecutive steps:
+        0. Draw background
+        1. Processing external changes to player's state
+        2. Update tiles and other non-player objects
+        3. Process player's collisions
+        4. Get player's new state according to new circumstances
+        5. Draw everything
+        """
+        # 0.
+        self.sky.draw(self.surface)
+        self.clouds.draw(self.surface, self.world_shift)
+        self.water.draw(self.surface, self.world_shift)
+
+        # 1.
+        self.start_music()
+        for player in self.players.sprites():
+            self.restore_player(player)
+            self.apply_gravity(self.gravity, player)
+            self.permit_jump(player)
+
+            # 2.
+            player.get_keys(neat=self.neat)
+        self.players.update()
+        for tile in self.all_tiles:
+            tile.update(self.world_shift)
+        self.constrains.update(self.world_shift)
+        self.tree_obs.update(self.world_shift)
+        self.level_end.update(self.world_shift)
+
+        # 3.
+        for player in self.players.sprites():
+            self.collision_x_handler(player, self.terrain_tiles)
+            self.collision_y_handler(player, self.terrain_tiles)
+            self.tree_collision(player, self.tree_obs)
+            self.objects_collision(player, self.objects_tiles)
+            self.enemy_collision(player, self.enemy_tiles)
+            self.level_finish(player, self.level_end)
+        for enemy in self.enemy_tiles.sprites():
+            self.enemy_constrains(enemy, self.constrains)
+        if self.multiple_players:
+            self.get_futher(self.players.sprites())
+            if not self.furthest_changed:
+                self.scroll_x(self.furthest)
+            self.move_other(self.players.sprites())
+        else:
+            self.scroll_x(self.players.sprite)
+
+        # 4.
+        # self.check_defeat(self.players.sprite)
+        for player in self.players.sprites():
+            self.check_state(player)
+        log.info("-------------")
+
+        # 5.
+        for tile in self.all_tiles:
+            tile.draw(self.surface)
+        self.players.draw(self.surface)
+        #print("--------------")
 
     def draw_level(self):
         """
@@ -681,7 +782,7 @@ class Level:
         # 1.
         self.start_music()
         self.restore_player(self.players.sprite)
-        self.apply_gravity(self.gravity)
+        self.apply_gravity(self.gravity, self.players.sprite)
         self.permit_jump(self.players.sprite)
         self.return_to_menu(self.players.sprite)
 
@@ -730,7 +831,10 @@ class Level:
         Function for running level if player's hasn't been defeated
         """
         if self.neat:
-            self.draw_level()
+            if self.multiple_players:
+                self.draw_multiple()
+            else:
+                self.draw_level()
         else:
             if self.check_defeat(self.players.sprite):
                 self.goto_endscore()

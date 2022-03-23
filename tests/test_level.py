@@ -510,7 +510,7 @@ class TestLevel(unittest.TestCase):
             self.assertTrue(pygame.mixer.get_busy())
             self.level.restore_player(self.player)
             self.assertFalse(self.level.postponed)
-            self.assertEqual((self.player.rect.x, self.player.rect.y), self.level.pps[0])
+            self.assertEqual((self.player.rect.x, self.player.rect.y), self.player.pps[0])
 
     def tearDown(self):
         self.patcher.stop()

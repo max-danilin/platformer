@@ -58,6 +58,9 @@ class Player(pygame.sprite.Sprite):
         self.blinks = BLINKING_DURATION
         self.keys = {'right': False, 'left': False, 'up': False}
         self.on_ground = False
+        self.pps = (self.rect.x, self.rect.y), (self.direction.x, self.direction.y), (
+                    self.speed.x, self.speed.y)
+        self.shifted = 0
 
         # Sound
         self.jump_sound = pygame.mixer.Sound(JUMP_SOUND_DIR)
@@ -158,6 +161,7 @@ class Player(pygame.sprite.Sprite):
         We save speed in order to implement camera movement aka level's world shift.
         :return:
         """
+        self.get_keys(self.neat)
         self.get_inputs()
         self.if_blinked()
 
