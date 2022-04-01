@@ -19,20 +19,12 @@ class Player(pygame.sprite.Sprite):
     """
     Class for player object
     """
-    def __init__(self, pos, neat=False):
+    def __init__(self, pos):
         """
         states - dict that contains images for different states of the player
         exact x and y - rounded up coordinates for collision detection
         shift_speed - variable to preserve speed value for level's world shifting
-        changed - whether the image was changed during blinking
-        last_hit - time when player was hit by an enemy last time
-        keys - keys to move player
-        on_ground - whether player stands on the ground
-        pps - saved player's position in the level to be able to restore it
-        shifted - amount of pixels player moved from the edge of the screen(when world's shift != 0, needed for
-        determining covered distance)
         :param pos: position of player's sprite
-        :param neat: whether a player will be managed by neural network
         """
         super().__init__()
 
@@ -56,19 +48,13 @@ class Player(pygame.sprite.Sprite):
         self.jump_speed = JUMP_SPEED
 
         # Player internal parameters
-        self.neat = neat
         self.last_hit = pygame.time.get_ticks()
-        self.max_lives = PLAYER_MAX_LIVES if not self.neat else 1
-        self.lives = self.max_lives if not self.neat else 1
+        self.max_lives = 1
+        self.lives = 1
         self.coins = 0
         self.levels_completed = 0
         self.enemies_killed = 0
         self.blinks = BLINKING_DURATION
-        self.keys = {'right': False, 'left': False, 'up': False}
-        self.on_ground = False
-        self.pps = (self.rect.x, self.rect.y), (self.direction.x, self.direction.y), (
-                    self.speed.x, self.speed.y)
-        self.shifted = 0
 
         # Sound
         self.jump_sound = pygame.mixer.Sound(JUMP_SOUND_DIR)
@@ -98,15 +84,15 @@ class Player(pygame.sprite.Sprite):
         if self.speed.x < 0:
             raise PlayerCreationError("Speed x can't be negative")
 
-    def get_inputs(self):
+    def get_inputs(self, keys):
         """
         Method for getting inputs for moving right or left.
         :return:
         """
-        if self.keys.get('left'):
+        if keys.get('left'):
             self.direction.x = -1
             self.moving_right = False
-        elif self.keys.get('right'):
+        elif keys.get('right'):
             self.direction.x = 1
             self.moving_right = True
         else:
@@ -135,28 +121,6 @@ class Player(pygame.sprite.Sprite):
         if not self.moving_right:
             self.image = self.flipped[self.state][int(self.frame_index)]
 
-    @staticmethod
-    def keys_encoding(keys):
-        """
-        Encode keys dictionary to match with used in neat implementation
-        :param keys: keys from pygame
-        :return: modified keys dict
-        """
-        new_keys = dict()
-        new_keys['left'] = keys[pygame.K_LEFT]
-        new_keys['right'] = keys[pygame.K_RIGHT]
-        new_keys['up'] = keys[pygame.K_UP]
-        return new_keys
-
-    def get_keys(self, neat=False):
-        """
-        Get keys from Level. Either from pygame keys or neat ai
-        :param neat: checks if game is running in ai mode
-        """
-        if not neat:
-            self.keys = pygame.key.get_pressed()
-            self.keys = self.keys_encoding(self.keys)
-
     def update(self):
         """
         Method for updating player's position and animation.
@@ -167,9 +131,7 @@ class Player(pygame.sprite.Sprite):
         We save speed in order to implement camera movement aka level's world shift.
         :return:
         """
-        self.get_keys(self.neat)
 
-        self.get_inputs()
         self.if_blinked()
 
         self.exact_x = ceil(self.rect.x + self.direction.x * self.speed.x)
@@ -181,8 +143,6 @@ class Player(pygame.sprite.Sprite):
         self.prev_state = self.state
         self.speed.x = self.shift_speed
         self.blinking()
-        if self.neat:
-            self.restore_keys()
 
     def blinking(self):
         """
@@ -195,40 +155,11 @@ class Player(pygame.sprite.Sprite):
                 self.changed = True
             self.blinks += 1
 
-    def jump(self, draw=True):
+    def jump(self, keys):
         """
         This method needs to be implemented separately because jumping can occur only while on ground.
         :return:
         """
-        if self.keys.get('up'):
+        if keys.get('up'):
             self.direction.y = self.jump_speed
-            if draw:
-                self.jump_sound.play()
-
-    # Number of functions to let ai move player
-
-    def move_right(self):
-        self.keys['right'] = True
-
-    def move_left(self):
-        self.keys['left'] = True
-
-    def move_up(self):
-        self.keys['up'] = True
-
-    def move_right_up(self):
-        self.keys['right'] = True
-        self.keys['up'] = True
-
-    def move_left_up(self):
-        self.keys['left'] = True
-        self.keys['up'] = True
-
-    def restore_keys(self):
-        """
-        Revert keys for new frame
-        :return:
-        """
-        self.keys['right'] = False
-        self.keys['left'] = False
-        self.keys['up'] = False
+            self.jump_sound.play()

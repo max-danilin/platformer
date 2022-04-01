@@ -9,6 +9,7 @@ from endgame import EndGame
 from types import GeneratorType
 import numpy
 
+
 # Logging
 log = logging.getLogger("platform")
 stream_handler = logging.StreamHandler()
@@ -27,22 +28,17 @@ class Level:
     Class for creating, adjusting and processing level of the game.
     """
 
-    def __init__(self, level_data, surface, player, ui, neat=False, multiple_players=False, draw=True):
+    def __init__(self, level_data, surface, player, ui):
         """
         world_shift - allows us to move camera when player reaches certain lines on the screen
+        on_ground - checks whether player is on the ground
         back_to_menu - flag to check if game should get back to overworld
         postponed - flag to pause level if backspace was hit
-        endgame - class for endgame screen
-        neat_tiles - tiles level should treat as objects affected by world shift for NEAT to work properly
-        furthest_saved - saves furthest player from previous run
-        furthest_changed - whether furthest player has changed since last run
-        furthest - player with most X position of all
-        :param player - player's object
-        :param ui - player's UI
+        pps - player's position when level was postponed
+        ui - player's UI
+        endgame- class for endgame screen
         :param level_data: level map in txt format
         :param surface: surface to draw on
-        :param neat - whether a player will be managed by NEAT
-        :param multiple_players - whether level will be handling multiple AI players
         """
         if not isinstance(level_data, dict):
             raise LevelError(f'Level data should be dict, not {type(level_data)}')
@@ -50,10 +46,7 @@ class Level:
         self.surface = surface
         self.player = player
         self.ui = ui
-        self.endgame = EndGame(self.surface, self.player)
-        self.neat = neat
-        self.multiple_players = multiple_players
-        self.draw = draw
+        # self.endgame = EndGame(self.surface, self.player)
 
         # Local level variables
         self.world_shift = 0
@@ -61,6 +54,7 @@ class Level:
         self.level_width = 0
 
         # Flags
+        self.on_ground = False
         self.completed = False
         self.back_to_menu = False
         self.postponed = True
@@ -79,13 +73,16 @@ class Level:
         self.tree_obs = pygame.sprite.Group()
 
         # Player
-        if not self.multiple_players:
+        if len(self.player) == 1:
             self.players = pygame.sprite.GroupSingle()
         else:
             self.players = pygame.sprite.Group()
 
         self.preloaded = Level.preload_images()
         [self.create_tile_group(key) for key in self.level_data]
+
+        # Save player's position
+        self.pps = self.save_player(self.players.sprite)
 
         # Tile group for drawing
         self.all_tiles = [self.background_tiles, self.terrain_tiles, self.enemy_tiles, self.objects_tiles]
@@ -107,14 +104,10 @@ class Level:
         self.hit_sound = pygame.mixer.Sound(HIT_SOUND_DIR)
         self.level_music = pygame.mixer.Sound(LEVEL_MUSIC_DIR)
 
-        # Neat
+        self.keys = {'right': False, 'left': False, 'up': False}
         self.tiles_neat = [self.terrain_tiles, self.enemy_tiles, self.objects_tiles, self.tree_obs]
-        # Neat multiple players
-        self.furthest_saved = None
-        self.furthest_changed = False
-        self.furthest = None
-        self.max_x = 0
-        self.prev_shift = 0
+        self.player_prev_pos = 100
+        self.shifted = 0
 
     @staticmethod
     def load_img(path_dict):
@@ -185,13 +178,9 @@ class Level:
                             self.constrains.add(sprite)
                     if type_ == 'player':
                         if item == '0':
-                            if self.multiple_players:
-                                for player in self.player:
-                                    player.rect.topleft = (x, y)
-                                    self.players.add(player)
-                            else:
-                                self.player.rect.topleft = (x, y)
-                                self.players.add(self.player)
+                            for player in self.player:
+                                player.rect.topleft = (x, y)
+                                self.players.add(player)
                         elif item == '1':
                             sprite = Tile(tile_size, (x, y))
                             self.level_end.add(sprite)
@@ -246,15 +235,14 @@ class Level:
         else:
             self.world_shift = 0
 
-    @staticmethod
-    def apply_gravity(gravity, player):
+    def apply_gravity(self, gravity):
         """
         Applying gravity onto player object
         :return: None
         """
         if not isinstance(gravity, int) and not isinstance(gravity, float):
             raise LevelError(f"Gravity should be number, not {type(gravity)}")
-        player.direction.y += gravity
+        self.players.sprite.direction.y += gravity
 
     @staticmethod
     def show_text(font, lives, coins, surface):
@@ -278,33 +266,30 @@ class Level:
         :param player: player's sprite
         :return:
         """
-        if player.on_ground:
-            player.get_keys(neat=self.neat)
-            player.jump(self.draw)
+        if self.on_ground:
+            player.get_keys(neat=True, keys=self.keys)
+            player.jump()
+            # player.jump()
 
     def goto_endscore(self):
         """
-        Draws end scene. Unused if NEAT is running.
+        Draws end scene
         :return:
         """
         pygame.mixer.Channel(BACKGROUND_MUSIC_CHANNEL).stop()
         self.endgame.draw()
 
-    def check_defeat(self, player):
+    @staticmethod
+    def check_defeat(player):
         """
-        Checks if player has fallen or has no lives left. Removes player from group in case of multiple players
+        Checks if player has fallen or has no lives left
         :param player: player object
-        :return: True if the player was defeated
+        :return:
         """
         if player.rect.y >= screen_height or player.lives <= 0:
-            if self.multiple_players:
-                self.players.remove(player)
             return True
-        else:
-            return False
 
-    @staticmethod
-    def tree_collision(player, trees):
+    def tree_collision(self, player, trees):
         """
         Checks collision with invisible tiles inside fg trees (referred as fg tiles further on). Works alike
         collision_y_handler aside of few features.
@@ -335,7 +320,7 @@ class Level:
                 collided_y = True
                 player.rect.bottom = tree.rect.top
                 player.direction.y = 0
-                player.on_ground = True
+                self.on_ground = True
         player.rect.y = saving_position if not collided_y else player.rect.y
 
     def objects_collision(self, player, objects):
@@ -348,8 +333,7 @@ class Level:
         for object_ in pygame.sprite.spritecollide(player, objects, dokill=True):
             player.coins += object_.value
             if object_.value:
-                if self.draw:
-                    self.coin_sound.play()
+                self.coin_sound.play()
             if object_.hp_recovery:
                 player.lives += 1
 
@@ -380,8 +364,7 @@ class Level:
             if player.rect.colliderect(enemy.collision_rect):
                 if player.direction.y > 0 and player.rect.bottom - enemy.collision_rect.top < collision_tolerance:
                     self.add_explosion_particles(enemy.rect.topleft)
-                    if self.draw:
-                        self.stomp_sound.play()
+                    self.stomp_sound.play()
                     enemies.remove(enemy)
                     player.enemies_killed += 1
                     killed = True
@@ -389,8 +372,7 @@ class Level:
                     now = pygame.time.get_ticks()
                     if now - player.last_hit >= AFTER_DAMAGE_INVUL:
                         player.last_hit = now
-                        if self.draw:
-                            self.hit_sound.play()
+                        self.hit_sound.play()
                         player.lives -= 1
                         player.blinks = 0
         if killed:
@@ -422,7 +404,8 @@ class Level:
     @staticmethod
     def save_player(player):
         """
-        Method for saving player's parameters when the level is created and if it is paused. Unused if NEAT is running.
+        Method for saving player's parameters when the level is created and if it is paused
+        :param player:
         :return: coordinates, direction and speed in tuples
         """
         rect = player.rect.x, player.rect.y
@@ -436,27 +419,24 @@ class Level:
         :param player:
         :return:
         """
-        if not self.neat:
-            keys = pygame.key.get_pressed()
-            if keys[pygame.K_BACKSPACE]:
-                self.back_to_menu = True
-                self.postponed = True
-                player.pps = self.save_player(player)
+        keys = pygame.key.get_pressed()
+        if keys[pygame.K_BACKSPACE]:
+            self.back_to_menu = True
+            self.postponed = True
+            self.pps = self.save_player(player)
 
-    def restore_player(self, player):
+    def restore_player_neat(self, player):
         """
-        Restores player parameters if level is resumed. Unused if NEAT is running.
+        Restores player parameters if level is resumed.
         :param player:
         :return:
         """
         if self.postponed:
-            if not self.neat:
-                (player.rect.x, player.rect.y), (player.direction.x, player.direction.y), (
-                    player.speed.x, player.speed.y) = player.pps
+            # (player.rect.x, player.rect.y), (player.direction.x, player.direction.y), (
+            #     player.speed.x, player.speed.y) = self.pps
             self.postponed = False
 
-    @staticmethod
-    def collision_x_handler(player, tiles):
+    def collision_x_handler(self, player, tiles):
         """
         Method for handling collisions along X axis
         We use collision tolerance in order to check from which side collision occurs
@@ -487,8 +467,7 @@ class Level:
                           f" tile left={tile.rect.right}, tile y={tile.rect.y}")
         player.rect.x = saving_position if not collided_x else player.rect.x
 
-    @staticmethod
-    def collision_y_handler(player, tiles):
+    def collision_y_handler(self, player, tiles):
         """
         Method for handling collisions along Y axis (see method for X collisions)
         We use collision tolerance to process collisions happening because of jumping,
@@ -499,7 +478,7 @@ class Level:
         :return:
         """
         collision_tolerance = abs(player.jump_speed) + 1
-        player.on_ground = False
+        self.on_ground = False
 
         saving_position = player.rect.y
         collided_y = False
@@ -518,39 +497,39 @@ class Level:
                 collided_y = True
                 player.rect.bottom = tile.rect.top
                 player.direction.y = 0
-                player.on_ground = True
+                self.on_ground = True
                 log.debug(f"COLLIDE Y: player x={player.rect.x}, player bottom={player.rect.bottom};"
                           f" tile x={tile.rect.x}, tile top={tile.rect.top}")
         player.rect.y = saving_position if not collided_y else player.rect.y
 
-    @staticmethod
-    def check_state(player):
+    def check_state(self, player):
         """
         Method for determining player's state for correct animations.
         :param player: player's sprite
         :return:
         """
-        if player.direction.x == 0 and player.on_ground:
+        if player.direction.x == 0 and self.on_ground:
             player.state = "idle"
-        elif player.direction.x != 0 and player.on_ground:
+        elif player.direction.x != 0 and self.on_ground:
             player.state = "run"
         else:
             player.state = "jump"
         log.info(f"State = {player.state}, direction x = {player.direction.x}, direction y = {player.direction.y},"
-                 f" rect y = {player.rect.y}, rect x = {player.rect.x}, on ground = {player.on_ground}")
+                 f" rect y = {player.rect.y}, rect x = {player.rect.x}, on ground = {self.on_ground}")
 
     def particle_create(self, player):
         """
         Method for creating jump, landing and running particles based on
         player's state and position.
         :param player: player's sprite
+        :return:
         """
         if player.prev_state != "jump" and player.direction.y < 0:
             particle_offset = pygame.math.Vector2(-10, 30)
             jump_particle = Particle(player.rect.bottomleft - particle_offset, 'jump')
             self.particles.add(jump_particle)
             log.debug(f"Jump particle created {jump_particle.rect.x}, {jump_particle.rect.y}")
-        elif player.prev_state == "jump" and player.on_ground:
+        elif player.prev_state == "jump" and self.on_ground:
             particle_offset = pygame.math.Vector2(20, 40)
             landing_particle = Particle(player.rect.bottomleft - particle_offset, 'land')
             self.particles.add(landing_particle)
@@ -573,6 +552,7 @@ class Level:
         :param run_particles: run particles separately to make calculations faster
         :param player: player's sprite
         :param particles: group of particles to draw
+        :return:
         """
         sprite = run_particles.sprite
         if sprite:
@@ -598,190 +578,78 @@ class Level:
         if self.postponed:
             pygame.mixer.Channel(BACKGROUND_MUSIC_CHANNEL).play(self.level_music, loops=-1)
 
-    # Neat functions
-    ############################
-
     def fov(self, player):
-        """
-        Determines field of view for ai of a player. We set up a 2 dimensional array for FOV_DISTANCE *
-        (screen_height - 1) squares and fill it with values based on what type of tile is located inside this square.
-        We start filling based on player's x position ang go on for FOV_DISTANCE squares (square consists of
-        tile size * tile size pixels).
-        We make distinctions between these objects:
-        0 - no tile
-        1 - terrain tile
-        2 - tree obstacles (have to distinct them from terrain, because their collision works different)
-        3 - objects like coins
-        4 - player itself (might try not inserting it into array)
-        -1 - enemy tiles
-        It might be useful to try different ways of detecting enemies and player inside the square, like based on
-        X position or central position or even trying to let enemy fill all the squares where it was detected.
-        we also might try to spread FOV to the left of the player since it can move towards that direction by
-        changing LEFT_FOV_ADJUSTMENT value. REMINDER: in doing you you should also change input value in
-        config.txt to 10 * LEFT_FOV_ADJUSTMENT.
-        :param player:
-        :return: fov 2d array
-        """
-        pl_x = int((player.rect.x + player.speed.x + 1) // tile_size)
-        pl_y = int(player.rect.y // tile_size) - 1
-        fov_array = numpy.empty(((screen_height // tile_size) - 1, FOV_DISTANCE + LEFT_FOV_ADJUSTMENT))
-        column = 0
-        for x in range((pl_x - LEFT_FOV_ADJUSTMENT) * tile_size, (pl_x + FOV_DISTANCE) * tile_size, tile_size):
-            row = 0
-            for y in range(tile_size, screen_height, tile_size):
+        # 0 - self.level_width, 0 - screen_height
+        pl_x = int((player.rect.x + player.speed.x + 1) // 64)
+        pl_y = int(player.rect.y // 64) - 1
+        fov_array = numpy.empty(((screen_height // 64) - 1, 5))
+        i = 0
+        for row in range(pl_x * 64, (pl_x + 5) * 64, 64):
+            j = 0
+            for column in range(64, screen_height, 64):
                 tile_found = False
                 for tile_type in self.tiles_neat:
                     for tile in tile_type.sprites():
-                        if tile.rect.x in range(x, x + tile_size) and tile.rect.y in range(y, y + tile_size):
+                        if tile.rect.x in range(row, row + 64) and tile.rect.y in range(column, column + 64):
                             if tile_type is self.terrain_tiles:
-                                fov_array[row][column] = 1
+                                fov_array[j][i] = 1
                                 tile_found = True
                             elif tile_type is self.tree_obs:
-                                fov_array[row][column] = 2
+                                fov_array[j][i] = 2
                                 tile_found = True
                             elif tile_type is self.enemy_tiles:
-                                fov_array[row][column] = -1
+                                fov_array[j][i] = -1
                                 tile_found = True
                             elif tile_type is self.objects_tiles:
-                                fov_array[row][column] = 3
+                                fov_array[j][i] = 3
                                 tile_found = True
                 if not tile_found:
-                    fov_array[row][column] = 0
-                row += 1
-            column += 1
-        fov_array[pl_y][LEFT_FOV_ADJUSTMENT] = 4
-        # print(fov_array)
-        # print("----------------------")
+                    fov_array[j][i] = 0
+                j += 1
+            i += 1
+        fov_array[pl_y][0] = 4
         return fov_array
 
+    def move_right(self):
+        self.keys['right'] = True
+
+    def move_left(self):
+        self.keys['left'] = True
+
+    def move_up(self):
+        self.keys['up'] = True
+
+    def move_right_up(self):
+        self.keys['right'] = True
+        self.keys['up'] = True
+
+    def move_left_up(self):
+        self.keys['left'] = True
+        self.keys['up'] = True
+
+    def restore_keys(self):
+        self.keys['right'] = False
+        self.keys['left'] = False
+        self.keys['up'] = False
+
+    # def check_player_pos(self, player):
+    #     if player.rect.x in range(self.player_prev_pos-4, self.player_prev_pos+4): # == self.player_prev_pos:
+    #         stayed = True
+    #     else:
+    #         stayed = False
+    #     self.player_prev_pos = player.rect.x
+    #     return stayed
+
     def distance_traveled(self, player):
-        """
-        Detects how much distance in the level player has moved
-        shifted - increases as player reaches edge of the screen
-        Also distance shouldnt be affected when screen is moved for the firsth time, cause
-        we change only player's speed, not his position when shifting
-        :param player:
-        :return: distance
-        """
-        if self.prev_shift == 0 and self.world_shift != 0:
-            pass
-        else:
-            player.shifted += -self.world_shift
-        self.prev_shift = self.world_shift
-        return player.rect.x + player.shifted
+        self.shifted += -self.world_shift
+        return player.rect.x + self.shifted
 
-    def nparray_to_list(self, player):
-        """
-        Convert 2d array into list with multiple values for feeding to neural network as input
-        :return: list
-        """
-        fv = self.fov(player)
+    def nparray_to_list(self):
+        fv = self.fov(self.players.sprite)
         return fv.reshape(-1).tolist()
-
-    ############################
-
-    def remove_player(self, player):
-        self.players.remove(player)
-
-    def get_futher(self, players):
-        """
-        Get player, covered most distance among all players. Camera will be focused on this player while it remains
-        furthest and alive. If that player is changed, revert camera to the next such player.
-        max_x - get X position of saved furthest player
-        """
-        self.furthest = sorted(players, key=lambda player: player.rect.x, reverse=True)[0]
-        if self.furthest is self.furthest_saved:
-            self.furthest_changed = False
-            self.max_x = self.furthest_saved.rect.x
-        else:
-            self.furthest_changed = True
-            self.revert_camera()
-        self.furthest_saved = self.furthest
-
-    def revert_camera(self):
-        """
-        Revert camera to the position of the next furthest player based on the difference between it's X position
-        and X position of previous furthest player
-        """
-        dist = self.furthest.rect.x
-        self.world_shift = self.max_x - dist
-
-    def move_other(self, players):
-        """
-        Affect other players with world's shift based on furthest player movement
-        """
-        for player in players:
-            if player is self.furthest:
-                pass
-            else:
-                player.rect.x += self.world_shift
-
-    def draw_multiple(self):
-        """
-        :param draw: whether to draw Level(useful for NEAT implementation)
-        Running level with NEAT multiple players:
-        0. Draw background
-        1. Processing external changes to players states
-        2. Update tiles and other non-player objects
-        3. Process players collisions with other objects
-        4. Get players new states according to new circumstances
-        5. Draw everything if draw is True
-        We don't process particles when dealing with multiple players to make calculations easier.
-        """
-        # 0.
-        if self.draw:
-            self.sky.draw(self.surface)
-            self.clouds.draw(self.surface, self.world_shift)
-            self.water.draw(self.surface, self.world_shift)
-            self.start_music()
-
-        # 1.
-        for player in self.players.sprites():
-            self.restore_player(player)
-            self.apply_gravity(self.gravity, player)
-            self.permit_jump(player)
-            player.get_keys(neat=self.neat)
-
-        # 2.
-        self.players.update()
-        for tile in self.all_tiles:
-            tile.update(self.world_shift)
-        self.constrains.update(self.world_shift)
-        self.tree_obs.update(self.world_shift)
-        self.level_end.update(self.world_shift)
-
-        # 3.
-        for player in self.players.sprites():
-            self.collision_x_handler(player, self.terrain_tiles)
-            self.collision_y_handler(player, self.terrain_tiles)
-            self.tree_collision(player, self.tree_obs)
-            self.objects_collision(player, self.objects_tiles)
-            self.enemy_collision(player, self.enemy_tiles)
-            self.level_finish(player, self.level_end)
-        for enemy in self.enemy_tiles.sprites():
-            self.enemy_constrains(enemy, self.constrains)
-        if self.multiple_players:
-            self.get_futher(self.players.sprites())
-            if not self.furthest_changed:
-                self.scroll_x(self.furthest)
-            self.move_other(self.players.sprites())
-        else:
-            self.scroll_x(self.players.sprite)
-
-        # 4.
-        for player in self.players.sprites():
-            self.check_state(player)
-        log.info("-------------")
-
-        # 5.
-        if self.draw:
-            for tile in self.all_tiles:
-                tile.draw(self.surface)
-            self.players.draw(self.surface)
 
     def draw_level(self):
         """
-        :param draw: whether to draw Level(useful for NEAT implementation)
         Running level following these consecutive steps:
         0. Draw background
         1. Processing external changes to player's state
@@ -791,21 +659,23 @@ class Level:
         5. Draw everything
         """
         # 0.
-        if self.draw:
-            self.sky.draw(self.surface)
-            self.clouds.draw(self.surface, self.world_shift)
-            self.water.draw(self.surface, self.world_shift)
-            self.start_music()
+        self.sky.draw(self.surface)
+        self.clouds.draw(self.surface, self.world_shift)
+        self.water.draw(self.surface, self.world_shift)
 
         # 1.
-        self.restore_player(self.players.sprite)
-        self.apply_gravity(self.gravity, self.players.sprite)
+        self.start_music()
+        self.restore_player_neat(self.players.sprite)
+        self.apply_gravity(self.gravity)
         self.permit_jump(self.players.sprite)
-        self.return_to_menu(self.players.sprite)
+        # self.return_to_menu(self.players.sprite)
 
         # 2.
-        self.players.sprite.get_keys(neat=self.neat)
+        # self.keys['right'] = True
+        self.players.sprite.get_keys(neat=True, keys=self.keys)
+        # self.players.sprite.get_inputs()
         self.players.update()
+        self.restore_keys()
         for tile in self.all_tiles:
             tile.update(self.world_shift)
         self.constrains.update(self.world_shift)
@@ -824,30 +694,32 @@ class Level:
         self.scroll_x(self.players.sprite)
 
         # 4.
+        # self.check_defeat(self.players.sprite)
         self.check_state(self.players.sprite)
         self.particle_create(self.players.sprite)
         log.info("-------------")
 
         # 5.
-        if self.draw:
-            for tile in self.all_tiles:
-                tile.draw(self.surface)
-            self.particle_draw(self.players.sprite, self.particles, self.run_particles)
-            self.players.draw(self.surface)
-            self.ui.draw()
+        for tile in self.all_tiles:
+            tile.draw(self.surface)
+        self.particle_draw(self.players.sprite, self.particles, self.run_particles)
+        self.players.draw(self.surface)
+        self.ui.draw()
+
+        # fv = self.fov(self.players.sprite)
+        # print(len(fv))
+        # print(len(fv.reshape(-1).tolist())) # 50
+        # print(fv.reshape(-1), type(fv.reshape(-1).tolist()))
+        # print(fv)
+        # print("-----------")
 
     def run(self):
         """
-        Function for running level depending on NEAT mode and whether player has been defeated
+        Function for running level if player's hasn't been defeated
         """
-        if self.neat:
-            if self.multiple_players:
-                self.draw_multiple()
-            else:
-                self.draw_level()
-        else:
-            if self.check_defeat(self.players.sprite):
-                self.goto_endscore()
-            else:
-                self.draw_level()
+        self.draw_level()
+        # if self.check_defeat(self.players.sprite):
+        #     self.goto_endscore()
+        # else:
+        #     self.draw_level()
 

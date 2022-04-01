@@ -5,6 +5,7 @@ from collections import namedtuple
 from decoration import Sky
 from victory import Victory
 from ui import UI
+from time import time
 
 
 class Overworld:
@@ -46,6 +47,7 @@ class Overworld:
         self.proceed_to_level = None
         self.started = False
         self.player_pos = self.points[0]
+        self.escape_timeout = time()
 
         self.create_player()
 
@@ -122,6 +124,16 @@ class Overworld:
             if x in range(self.points[i][0], self.points[i+1][0]):
                 player.rect.centery = self.line_equation(x, point(*self.points[i]), point(*self.points[i+1]))
 
+    def return_timeout(self):
+        """
+        Allows returning from overworld to initial screen only after some timeout after returning to overworld from game
+        :return:
+        """
+        if time() - self.escape_timeout < OVERWORLD_ESCAPE_TIMEOUT:
+            return False
+        else:
+            return True
+
     def set_player(self, player):
         """
         Setting player in the overworld after each level completion
@@ -179,6 +191,7 @@ class Overworld:
         else:
             self.proceed_to_level = None
             self.started = False
+            self.escape_timeout = time()
             brick.stop_level = False
 
     def check_victory(self):

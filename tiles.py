@@ -3,14 +3,24 @@ from settings import *
 from utils import get_tile_img
 
 
-def get_images():
+def get_coin_images():
     """
     Function to load animated images once for every tile
     :return:
     """
+    pygame.display.set_mode((screen_width, screen_height))
     coin_tile_images = get_tile_img(COINS_DIR)
+    return coin_tile_images
+
+
+def get_enemy_images():
+    """
+    Function to load animated images once for every tile
+    :return:
+    """
+    pygame.display.set_mode((screen_width, screen_height))
     enemy_tile_images = get_tile_img(ENEMY_DIR)
-    return coin_tile_images, enemy_tile_images
+    return enemy_tile_images
 
 
 class Tile(pygame.sprite.Sprite):
@@ -129,12 +139,14 @@ class CoinTile(AnimatedTile):
     """
     Class for animated coin tiles
     """
+    images = get_coin_images()
+
     def __init__(self, size, pos, img):
         super().__init__(size, pos, img)
         x, y = pos
         self.rect = self.image.get_rect(bottomleft=(x + 15, y + size))
-
-        self.images = get_images()[0]
+        self.images = CoinTile.images
+        # self.images = get_images()[0]
         self.image = self.images[0]
         self.animated = True
 
@@ -147,6 +159,8 @@ class EnemyTile(AnimatedTile):
     Class for enemy tiles and animation
     We use a bit smaller rect for checking collisions to provide better visuals
     """
+    images = get_enemy_images()
+
     def __init__(self, size, pos, img):
         """
         flipped - preloaded flipped images
@@ -156,7 +170,8 @@ class EnemyTile(AnimatedTile):
         :param img:
         """
         super().__init__(size, pos, img)
-        self.images = get_images()[1]
+        # self.images = get_images()[1]
+        self.images = EnemyTile.images
         self.flipped = [pygame.transform.flip(image, True, False) for image in self.images]
         self.image = self.images[0]
         self.animated = True
