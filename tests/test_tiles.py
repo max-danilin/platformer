@@ -35,9 +35,10 @@ class TestTiles(unittest.TestCase):
     def test_enemy(self):
         srf = Surface((2, 2))
         srf_flip = Surface((5, 5))
-        with patch('tiles.get_images', Mock(return_value=[None, [srf, 1, 2]])):
+        with patch('tiles.get_enemy_images', Mock(return_value=[srf, 1, 2])):
             with patch('tiles.pygame.transform.flip', Mock(return_value=srf_flip)):
                 enemy = tiles.EnemyTile(2, (0, 0), 1)
+                enemy.images = tiles.get_enemy_images()
                 enemy.update(3)
                 self.assertEqual(enemy.image, srf_flip)
                 self.assertEqual(enemy.rect.x, 3+ENEMY_SPEED)

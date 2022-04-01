@@ -108,6 +108,24 @@ class TestPlayer(unittest.TestCase):
         self.assertEqual(self.player.blinks, 2)
         self.assertEqual(self.player.image.get_alpha(), 255)
 
+    def test_neat(self):
+        self.player.neat = True
+        self.player.animate = Mock()
+
+        self.player.move_left_up()
+        self.player.jump()
+        self.player.update()
+        self.assertEqual(self.player.direction.x, -1)
+        self.assertEqual(self.player.direction.y, JUMP_SPEED)
+        self.assertFalse(self.player.keys['left'])
+        self.assertFalse(self.player.keys['up'])
+
+        self.player.move_right()
+        self.assertTrue(self.player.keys['right'])
+        self.player.update()
+        self.assertEqual(self.player.direction.x, 1)
+        self.assertFalse(self.player.keys['right'])
+
     def tearDown(self):
         pygame.display.quit()
         pygame.mixer.quit()

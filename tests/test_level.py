@@ -1,10 +1,11 @@
 import unittest
-from unittest.mock import patch, Mock, DEFAULT, PropertyMock, MagicMock
+from unittest.mock import patch, Mock, DEFAULT
 from level import Level, LevelError
 from settings import *
 from player import Player
 import pygame
 from tiles import ObjectTile, CoinTile, WideTile
+import tiles
 
 
 class TestLevelUtils(unittest.TestCase):
@@ -83,8 +84,9 @@ class TestLevelUtils(unittest.TestCase):
         gen2 = self.helper_gen([['0', '1'], ['-1', '2']])
         self.level.level_data = {'coins': ''}
         with patch('level.utils.import_csv', Mock(return_value=gen2)):
-            with patch('tiles.get_images', Mock(return_value=[mock_imgs])):
+            with patch('tiles.get_coin_images', Mock(return_value=mock_imgs)):
                 self.level.preloaded = {'coins': mock_imgs}
+                CoinTile.images = tiles.get_coin_images()
                 self.level.create_tile_group('coins')
                 test_coins = self.level.objects_tiles.sprites()
                 self.assertEqual(len(test_coins), 3)
@@ -467,7 +469,6 @@ class TestLevel(unittest.TestCase):
         self.level.particle_draw(self.player, self.level.particles, self.level.run_particles)
         self.assertEqual(len(self.level.run_particles.sprites()), 0)
 
-
     def test_enemy_constr(self):
         # Enemy 2048, 210/constr 1920, 192
         enemy = self.level.enemy_tiles.sprites()[0]
@@ -511,6 +512,98 @@ class TestLevel(unittest.TestCase):
             self.level.restore_player(self.player)
             self.assertFalse(self.level.postponed)
             self.assertEqual((self.player.rect.x, self.player.rect.y), self.player.pps[0])
+
+    def test_fov(self):
+        fov_array = self.level.fov(self.player)
+        self.assertEqual(fov_array[2][2], 4)
+        self.assertEqual(fov_array[9][1], 0)
+        self.assertEqual(fov_array[9][3], 1)
+        self.assertEqual(fov_array[4][6], 3)
+        self.assertEqual(len(fov_array[5]), 5+LEFT_FOV_ADJUSTMENT)
+        self.assertEqual(len(fov_array), 10)
+
+        self.player.rect.x += 70
+        fov_array = self.level.fov(self.player)
+        self.assertEqual(fov_array[2][2], 4)
+        self.assertEqual(fov_array[9][1], 1)
+        self.assertEqual(fov_array[9][3], 1)
+        self.assertEqual(fov_array[4][5], 3)
+        self.assertEqual(fov_array[4][6], 0)
+
+        assert isinstance(self.level.nparray_to_list(self.player), list)
+
+    def test_distance(self):
+        self.player.neat = True
+        self.player.animate = Mock()
+        self.player.move_right()
+        self.player.speed.x = 930
+        self.player.update()
+        self.level.scroll_x(self.player)
+        self.assertEqual(self.level.distance_traveled(self.player), 930)
+        self.assertEqual(self.player.rect.x, 930)
+        self.assertEqual(self.level.world_shift, 0)
+        self.player.speed.x = 15
+        self.player.shift_speed = 15
+        self.player.move_right()
+        self.player.update()
+        self.level.scroll_x(self.player)
+        self.assertEqual(self.player.rect.x, 945)
+        self.assertEqual(self.level.world_shift, -15)
+        self.assertEqual(self.level.distance_traveled(self.player), 945)
+        self.player.move_right()
+        self.player.update()
+        self.level.scroll_x(self.player)
+        self.assertEqual(self.player.rect.x, 945)
+        self.assertEqual(self.level.world_shift, -15)
+        self.assertEqual(self.level.distance_traveled(self.player), 960)
+
+    def tearDown(self):
+        self.patcher.stop()
+        pygame.mixer.quit()
+        pygame.display.quit()
+
+
+class TestMultiplePlayers(unittest.TestCase):
+    def setUp(self):
+        pygame.mixer.init()
+        self.screen = pygame.display.set_mode((screen_width, screen_height))
+        self.players = [Player((0, 0)), Player((20, 0)), Player((100, 30))]
+        self.patcher = patch.multiple('level', EndGame=DEFAULT, Sky=DEFAULT, Water=DEFAULT, Clouds=DEFAULT)
+        self.mocks = self.patcher.start()
+        self.level = Level(level_0, self.screen, self.players, Mock(), neat=True, multiple_players=True)
+
+    def test_further(self):
+        self.assertEqual(len(self.level.players.sprites()), 3)
+        self.level.players.sprites()[2].rect.x = 100
+        self.level.get_futher(self.level.players.sprites())
+        self.assertEqual(self.level.furthest.rect.x, 100)
+        self.assertTrue(self.level.furthest_changed)
+
+        self.level.players.sprites()[1].rect.x = 120
+        self.level.get_futher(self.level.players.sprites())
+        self.assertEqual(self.level.furthest.rect.x, 120)
+        self.assertTrue(self.level.furthest_changed)
+
+        self.level.players.sprites()[1].rect.x = 130
+        self.level.get_futher(self.level.players.sprites())
+        self.assertEqual(self.level.furthest.rect.x, 130)
+        self.assertFalse(self.level.furthest_changed)
+
+        self.level.players.sprites()[0].rect.x = 200
+        self.level.get_futher(self.level.players.sprites())
+        self.assertEqual(self.level.furthest.rect.x, 200)
+        self.assertTrue(self.level.furthest_changed)
+        self.assertEqual(self.level.max_x, 130)
+        self.assertEqual(self.level.world_shift, -70)
+
+        self.level.move_other(self.level.players.sprites())
+        self.assertEqual(self.level.players.sprites()[0].rect.x, 200)
+        self.assertEqual(self.level.players.sprites()[1].rect.x, 60)
+        self.assertEqual(self.level.players.sprites()[2].rect.x, 30)
+
+    def test_multiple(self):
+        self.level.draw = False
+        self.assertEqual(self.level.run(), None)
 
     def tearDown(self):
         self.patcher.stop()
