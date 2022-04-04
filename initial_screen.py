@@ -108,7 +108,7 @@ class Button:
             else:
                 self.text_rect.y = self.text_initial_y
 
-        # Blitting text
+        # Blit text
         if self.multiple_text:
             for idx in range(len(self.render_list)):
                 self.surface.blit(self.render_list[idx], self.rect_list[idx])
@@ -139,10 +139,9 @@ class InitialScreen:
 
         # Music
         pygame.mixer.init()
-        self.channel = pygame.mixer.Channel(BACKGROUND_MUSIC_CHANNEL)
+        self.channel = pygame.mixer.Channel(BACKGROUND_MUSIC_CHANNEL+3)
         self.sound = pygame.mixer.Sound(MUSIC_DIR)
         self.sound.set_volume(0.03)
-        self.channel.play(self.sound, loops=-1)
 
         # Font
         pygame.font.init()
@@ -154,6 +153,10 @@ class InitialScreen:
                                     'Run NEAT\nMultiple')
         self.normal = Button(self.screen, (screen_width/8, BUTTON_Y), BUTTON_SIZE, self.font, 'Play game')
         self.buttons = [self.neat, self.neat_multiple, self.normal]
+        # Defining button modes
+        self.neat.mode = 'neat'
+        self.neat_multiple.mode = 'neat multiple'
+        self.normal.mode = 'game'
 
         self.initial_run = True
 
@@ -182,13 +185,43 @@ class InitialScreen:
         text_rect = surf_text.get_rect(center=(screen_width/2, screen_height/2-50))
         self.screen.blit(surf_text, text_rect)
 
+    def set_mode(self, mode):
+        """
+        Setting game mode based on pressed button
+        :param mode: game mode of neat, neat multiple or usual game
+        """
+        self.sound.stop()
+        self.initial_run = False
+        if mode in ('neat', 'neat multiple'):
+            if mode == 'neat':
+                neat = Neat()
+            else:
+                neat = Neat(multiple=True)
+            if not Neat.draw:
+                self.screen.blit(self.image, self.image.get_rect(topleft=(0, 0)))
+                self.no_draw_message()
+                pygame.display.flip()
+            neat.run_neat()
+            Neat.generation = 0
+            self.initial_run = Neat.return_to_initial
+            Neat.return_to_initial = False
+        else:
+            game = Platformer()
+            game.run()
+            self.initial_run = game.return_to_initial
+            game.return_to_initial = False
+
     def run(self):
         """
         Run initial screen in the beginning and in case of return from any game mode. Process button clicks and
         starting corresponding game mode.
         """
+        started = True
         while True:
             if self.initial_run:
+                if started:
+                    self.sound.play(loops=-1)
+                    started = False
                 events = pygame.event.get()
                 for event in events:
                     if event.type == pygame.QUIT or (event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE):
@@ -204,37 +237,9 @@ class InitialScreen:
                     if button.pressed and button.sound_timeout > BUTTON_SOUND_TIMEOUT:
                         button.sound.play()
                         button.sound_timeout = 0
-
-                if self.neat.pressed:
-                    self.initial_run = False
-                    neat_single = Neat()
-                    if not Neat.draw:
-                        self.screen.blit(self.image, self.image.get_rect(topleft=(0, 0)))
-                        self.no_draw_message()
-                        pygame.display.flip()
-                    neat_single.run_neat()
-                    Neat.generation = 0
-                    self.initial_run = Neat.return_to_initial
-                    Neat.return_to_initial = False
-
-                if self.neat_multiple.pressed:
-                    self.initial_run = False
-                    neat_multiple = Neat(multiple=True)
-                    if not Neat.draw:
-                        self.screen.blit(self.image, self.image.get_rect(topleft=(0, 0)))
-                        self.no_draw_message()
-                        pygame.display.flip()
-                    neat_multiple.run_neat()
-                    Neat.generation = 0
-                    self.initial_run = Neat.return_to_initial
-                    Neat.return_to_initial = False
-
-                if self.normal.pressed:
-                    self.initial_run = False
-                    game = Platformer()
-                    game.run()
-                    self.initial_run = game.return_to_initial
-                    game.return_to_initial = False
+                    if button.pressed:
+                        self.set_mode(button.mode)
+                        started = True
 
                 pygame.display.update()
                 self.clock.tick(CLOCK_RATE)

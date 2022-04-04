@@ -132,6 +132,7 @@ class Overworld:
         if time() - self.escape_timeout < OVERWORLD_ESCAPE_TIMEOUT:
             return False
         else:
+            pygame.mixer.Channel(BACKGROUND_MUSIC_CHANNEL).stop()
             return True
 
     def set_player(self, player):
@@ -187,6 +188,7 @@ class Overworld:
         :return:
         """
         if not brick.stop_level:
+            pygame.mixer.Channel(BACKGROUND_MUSIC_CHANNEL).stop()
             brick.run_level(self.surface, self.player, self.ui)
         else:
             self.proceed_to_level = None
@@ -207,6 +209,7 @@ class Overworld:
         :return:
         """
         if not self.started:
+            pygame.mixer.Channel(BACKGROUND_MUSIC_CHANNEL).set_volume(0.03)
             pygame.mixer.Channel(BACKGROUND_MUSIC_CHANNEL).play(self.overworld_music, loops=-1)
             self.check_level_activation()
             self.check_available()
@@ -277,6 +280,7 @@ class Overworld:
         :return:
         """
         if self.check_victory():
+            pygame.mixer.Channel(BACKGROUND_MUSIC_CHANNEL).stop()
             self.victory.draw(events)
         elif self.proceed_to_level and not self.check_victory():
             self.run_brick(self.proceed_to_level)

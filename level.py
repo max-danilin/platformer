@@ -64,6 +64,7 @@ class Level:
         self.completed = False
         self.back_to_menu = False
         self.postponed = True
+        self.started = True
 
         # Particles
         self.particles = pygame.sprite.Group()
@@ -287,7 +288,7 @@ class Level:
         Draws end scene. Unused if NEAT is running.
         :return:
         """
-        pygame.mixer.Channel(BACKGROUND_MUSIC_CHANNEL).stop()
+        pygame.mixer.Channel(BACKGROUND_MUSIC_CHANNEL + 2).stop()
         self.endgame.draw()
 
     def check_defeat(self, player):
@@ -416,6 +417,7 @@ class Level:
         :return:
         """
         if pygame.sprite.spritecollide(player, tiles, dokill=False):
+            pygame.mixer.Channel(BACKGROUND_MUSIC_CHANNEL + 2).stop()
             player.levels_completed += 1
             self.completed = True
 
@@ -439,6 +441,7 @@ class Level:
         if not self.neat:
             keys = pygame.key.get_pressed()
             if keys[pygame.K_BACKSPACE]:
+                pygame.mixer.Channel(BACKGROUND_MUSIC_CHANNEL + 2).stop()
                 self.back_to_menu = True
                 self.postponed = True
                 player.pps = self.save_player(player)
@@ -596,7 +599,8 @@ class Level:
         :return:
         """
         if self.postponed:
-            pygame.mixer.Channel(BACKGROUND_MUSIC_CHANNEL).play(self.level_music, loops=-1)
+            pygame.mixer.Channel(BACKGROUND_MUSIC_CHANNEL + 2).set_volume(0.03)
+            pygame.mixer.Channel(BACKGROUND_MUSIC_CHANNEL+2).play(self.level_music, loops=-1)
 
     # Neat functions
     ############################

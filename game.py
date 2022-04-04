@@ -19,7 +19,7 @@ log_no_draw.setLevel(logging.INFO)  # DEBUG
 stream_handler.setLevel(logging.INFO)  # INFO
 
 
-class Platformer:  # TODO Check that sounds don't overlap
+class Platformer:
     """
     Main class for the game with main loop
 
@@ -227,6 +227,7 @@ class Platformer:  # TODO Check that sounds don't overlap
                 if event.type == pygame.QUIT or (event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE):
                     return True
                 elif event.type == pygame.KEYDOWN and event.key == pygame.K_BACKSPACE:
+                    pygame.mixer.stop()
                     self.return_to_initial = True
                     return True
 
@@ -287,6 +288,7 @@ class Platformer:  # TODO Check that sounds don't overlap
                     return True
                 elif event.type == pygame.KEYDOWN and event.key == pygame.K_BACKSPACE:
                     self.return_to_initial = True
+                    pygame.mixer.stop()
                     return True
 
             if self.draw:
