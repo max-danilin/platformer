@@ -106,18 +106,54 @@ level_0 = {
     'tree obstacle': "lvl 0/level 0_tree obstacle.csv",
 }
 
+level_1 = {
+    'terrain': 'lvl 1/level 1_terrain.csv',
+    'coins': 'lvl 1/level 1_coins.csv',
+    'constrains': 'lvl 1/level 1_constrains.csv',
+    'enemies': 'lvl 1/level 1_enemies.csv',
+    'player': 'lvl 1/level 1_player.csv',
+    'grass': 'lvl 1/level 1_grass.csv',
+    'trees': 'lvl 1/level 1_trees.csv',
+    'fg trees': 'lvl 1/level 1_fg trees.csv',
+    'tree obstacle': "lvl 1/level 1_tree obstacle.csv",
+}
+
+level_2 = {
+    'terrain': 'lvl 2/level 2_terrain.csv',
+    'coins': 'lvl 2/level 2_coins.csv',
+    'constrains': 'lvl 2/level 2_constrains.csv',
+    'enemies': 'lvl 2/level 2_enemies.csv',
+    'player': 'lvl 2/level 2_player.csv',
+    'grass': 'lvl 2/level 2_grass.csv',
+    'trees': 'lvl 2/level 2_trees.csv',
+    'fg trees': 'lvl 2/level 2_fg trees.csv',
+    'tree obstacle': "lvl 2/level 2_tree obstacle.csv",
+}
+
+level_3 = {
+    'terrain': 'lvl 3/level 3_terrain.csv',
+    'coins': 'lvl 3/level 3_coins.csv',
+    'constrains': 'lvl 3/level 3_constrains.csv',
+    'enemies': 'lvl 3/level 3_enemies.csv',
+    'player': 'lvl 3/level 3_player.csv',
+    'grass': 'lvl 3/level 3_grass.csv',
+    'trees': 'lvl 3/level 3_trees.csv',
+    'fg trees': 'lvl 3/level 3_fg trees.csv',
+    'tree obstacle': "lvl 3/level 3_tree obstacle.csv",
+}
+
 # Levels list
-levels = [level_0, level_0, level_0, level_0, ]
+levels = [level_0, level_1, level_2, level_3, ]
 
 # Brick levels data
 level_bricks = {
     'level_0': {
         'name': 'level_0', 'pos': (screen_width/12, screen_height/2), 'level': levels[0], 'activate': True,
-        'completed':  True, 'for_activation': None
+        'completed':  False, 'for_activation': None
     },
     'level_1': {
         'name': 'level_1', 'pos': (screen_width/12*3, screen_height/8), 'level': levels[1], 'activate': True,
-        'completed':  True, 'for_activation': None
+        'completed':  False, 'for_activation': None
     },
     'level_2': {
         'name': 'level_2', 'pos': (screen_width/12*5, screen_height/2), 'level': levels[2], 'activate': False,
