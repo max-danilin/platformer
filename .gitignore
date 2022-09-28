@@ -1,1 +1,8 @@
-venv/
+venv
+PIL
+lvl 0 old
+timing test.py
+level_old.py
+highscore.dat
+external_test.py
+external2.py
