@@ -5,9 +5,11 @@ Platformer game with 4 levels, system to save highscores with encryption, and NE
 
 # How To Run
 Use Python 3.7.7 or higher.
-If running from terminal - python initial_screen.py.
-If running as exe - output/Platformer/Platformer.exe.
+If running from terminal:
+pip install -r requirements.txt
+python initial_screen.py
+If running as exe - output/Platformer/Platformer.exe
 
 # Testing
-To run tests - python -m unittest.
+To run tests - python -m unittest
 Coverage is 84%.
